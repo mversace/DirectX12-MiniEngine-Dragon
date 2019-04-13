@@ -2,6 +2,7 @@
 
 #include "GameCore.h"
 
+class DepthBuffer;
 class GameApp : public GameCore::IGameApp
 {
 public:

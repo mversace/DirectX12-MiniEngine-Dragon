@@ -16,22 +16,11 @@
 #include "GraphicsCore.h"
 #include "SystemTime.h"
 // #include "GameInput.h"
-//#include "BufferManager.h"
+#include "BufferManager.h"
 #include "CommandContext.h"
 // #include "PostEffects.h"
 
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-    #pragma comment(lib, "runtimeobject.lib")
-#else
-    #include <agile.h>
-    using namespace Windows::ApplicationModel;
-    using namespace Windows::UI::Core;
-    using namespace Windows::UI::ViewManagement;
-    using Windows::ApplicationModel::Core::CoreApplication;
-    using Windows::ApplicationModel::Core::CoreApplicationView;
-    using Windows::ApplicationModel::Activation::IActivatedEventArgs;
-    using Windows::Foundation::TypedEventHandler;
-#endif
+#pragma comment(lib, "runtimeobject.lib")
 
 namespace Graphics
 {

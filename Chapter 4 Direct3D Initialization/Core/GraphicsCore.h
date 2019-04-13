@@ -27,6 +27,8 @@ class CommandListManager;
 // class CommandSignature;
 class ContextManager;
 
+// temp
+#include "ColorBuffer.h"
 
 namespace Graphics
 {
@@ -74,4 +76,8 @@ namespace Graphics
 
     extern uint32_t g_DisplayWidth;
     extern uint32_t g_DisplayHeight;
+
+    // temp
+    extern ColorBuffer g_DisplayPlane[3];
+    extern UINT g_CurrentBuffer;
 }

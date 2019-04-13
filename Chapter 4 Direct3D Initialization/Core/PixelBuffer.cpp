@@ -15,7 +15,7 @@
 #include "PixelBuffer.h"
 #include "EsramAllocator.h"
 #include "GraphicsCore.h"
-//#include "BufferManager.h"
+#include "BufferManager.h"
 #include "CommandContext.h"
 //#include "ReadbackBuffer.h"
 //#include <fstream>

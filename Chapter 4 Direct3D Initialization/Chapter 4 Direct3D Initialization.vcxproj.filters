@@ -87,6 +87,9 @@
     <ClCompile Include="Core\Color.cpp">
       <Filter>Core\Graphics</Filter>
     </ClCompile>
+    <ClCompile Include="Core\BufferManager.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GameApp.h">
@@ -178,6 +181,9 @@
     </ClInclude>
     <ClInclude Include="Core\Color.h">
       <Filter>Core\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\BufferManager.h">
+      <Filter>Core\Graphics\Resource</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

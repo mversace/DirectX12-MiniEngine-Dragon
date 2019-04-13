@@ -14,7 +14,7 @@
 #include "pch.h"
 #include "GraphicsCore.h"
 #include "GameCore.h"
-//#include "BufferManager.h"
+#include "BufferManager.h"
 // #include "GpuTimeManager.h"
 // #include "PostEffects.h"
 // #include "SSAO.h"
@@ -259,43 +259,9 @@ void Graphics::Resize(uint32_t width, uint32_t height)
     g_CurrentBuffer = 0;
 
     g_CommandManager.IdleGPU();
-}
 
-// #ifdef ENABLE_EXPERIMENTAL_DXIL_SUPPORT
-// // A more recent Windows SDK than currently required is needed for these.
-// typedef HRESULT(WINAPI *D3D12EnableExperimentalFeaturesFn)(
-//     UINT                                    NumFeatures,
-//     __in_ecount(NumFeatures) const IID*     pIIDs,
-//     __in_ecount_opt(NumFeatures) void*      pConfigurationStructs,
-//     __in_ecount_opt(NumFeatures) UINT*      pConfigurationStructSizes);
-// 
-// static const GUID D3D12ExperimentalShaderModelsID = // 76f5573e-f13a-40f5-b297-81ce9e18933f
-// {
-//     0x76f5573e, 0xf13a, 0x40f5, { 0xb2, 0x97, 0x81, 0xce, 0x9e, 0x18, 0x93, 0x3f }
-// };
-// 
-// using namespace DirectX;
-// 
-// static HRESULT EnableExperimentalShaderModels()
-// {
-//     HMODULE hRuntime = LoadLibraryW(L"d3d12.dll");
-//     if (!hRuntime)
-//         return HRESULT_FROM_WIN32(GetLastError());
-// 
-//     D3D12EnableExperimentalFeaturesFn pD3D12EnableExperimentalFeatures =
-//         (D3D12EnableExperimentalFeaturesFn)GetProcAddress(hRuntime, "D3D12EnableExperimentalFeatures");
-// 
-//     if (pD3D12EnableExperimentalFeatures == nullptr)
-//     {
-//         FreeLibrary(hRuntime);
-//         return HRESULT_FROM_WIN32(GetLastError());
-//     }
-// 
-//     return pD3D12EnableExperimentalFeatures(1, &D3D12ExperimentalShaderModelsID, nullptr, nullptr);
-// }
-// #else
-// static HRESULT EnableExperimentalShaderModels() { return S_OK; }
-// #endif
+    InitializeRenderingBuffers(g_DisplayWidth, g_DisplayHeight);
+}
 
 // Initialize the DirectX resources required to run.
 bool Graphics::Initialize(void)

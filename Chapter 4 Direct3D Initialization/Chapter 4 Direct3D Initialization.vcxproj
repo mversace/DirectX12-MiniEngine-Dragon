@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Core\BufferManager.cpp" />
     <ClCompile Include="Core\Color.cpp" />
     <ClCompile Include="Core\ColorBuffer.cpp" />
     <ClCompile Include="Core\CommandAllocatorPool.cpp" />
@@ -39,6 +40,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Core\BufferManager.h" />
     <ClInclude Include="Core\Color.h" />
     <ClInclude Include="Core\ColorBuffer.h" />
     <ClInclude Include="Core\CommandAllocatorPool.h" />

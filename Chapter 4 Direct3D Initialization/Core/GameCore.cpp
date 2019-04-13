@@ -13,6 +13,7 @@
 
 #include "pch.h"
 #include "GameCore.h"
+#include "GraphicsCore.h"
 
 #pragma comment(lib, "runtimeobject.lib")
 
@@ -20,6 +21,8 @@ namespace GameCore
 {
 	void InitializeApplication(IGameApp& game)
     {
+        Graphics::Initialize();
+
         game.Startup();
 	}
 

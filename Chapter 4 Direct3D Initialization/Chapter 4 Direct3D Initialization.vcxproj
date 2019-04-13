@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\GameCore.cpp" />
+    <ClCompile Include="Core\GraphicsCore.cpp" />
     <ClCompile Include="Core\Math\Frustum.cpp" />
     <ClCompile Include="Core\Math\Random.cpp" />
     <ClCompile Include="Core\pch.cpp" />
@@ -30,6 +31,7 @@
   <ItemGroup>
     <ClInclude Include="Core\d3dx12.h" />
     <ClInclude Include="Core\GameCore.h" />
+    <ClInclude Include="Core\GraphicsCore.h" />
     <ClInclude Include="Core\Math\BoundingPlane.h" />
     <ClInclude Include="Core\Math\BoundingSphere.h" />
     <ClInclude Include="Core\Math\Common.h" />

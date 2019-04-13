@@ -45,6 +45,9 @@
     <ClCompile Include="Core\Math\Random.cpp">
       <Filter>Core\Math</Filter>
     </ClCompile>
+    <ClCompile Include="Core\GraphicsCore.cpp">
+      <Filter>Core\Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GameApp.h">
@@ -97,6 +100,9 @@
     </ClInclude>
     <ClInclude Include="Core\Math\Vector.h">
       <Filter>Core\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GraphicsCore.h">
+      <Filter>Core\Graphics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

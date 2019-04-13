@@ -22,6 +22,9 @@
     <Filter Include="Core\Math">
       <UniqueIdentifier>{4d6f3935-a60a-47d9-94d9-543f82fca474}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Graphics\Command">
+      <UniqueIdentifier>{0d22c1f6-b06c-4265-bc53-ccbd7c68f802}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GameApp.cpp">
@@ -46,6 +49,18 @@
       <Filter>Core\Math</Filter>
     </ClCompile>
     <ClCompile Include="Core\GraphicsCore.cpp">
+      <Filter>Core\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\CommandAllocatorPool.cpp">
+      <Filter>Core\Graphics\Command</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\CommandListManager.cpp">
+      <Filter>Core\Graphics\Command</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\SystemTime.cpp">
+      <Filter>Core\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\EngineTuning.cpp">
       <Filter>Core\Graphics</Filter>
     </ClCompile>
   </ItemGroup>
@@ -104,10 +119,27 @@
     <ClInclude Include="Core\GraphicsCore.h">
       <Filter>Core\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Core\CommandAllocatorPool.h">
+      <Filter>Core\Graphics\Command</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\CommandListManager.h">
+      <Filter>Core\Graphics\Command</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\SystemTime.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\EngineTuning.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Core\Math\Functions.inl">
       <Filter>Core\Math</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Core\readme\readme_command.txt">
+      <Filter>Core\Graphics\Command</Filter>
+    </Text>
   </ItemGroup>
 </Project>

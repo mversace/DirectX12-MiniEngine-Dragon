@@ -13,6 +13,7 @@
 
 #pragma once
 
+class CommandListManager;
 
 namespace Graphics
 {
@@ -23,6 +24,11 @@ namespace Graphics
     using namespace Microsoft::WRL;
 
     void Initialize(void);
+    void Resize(uint32_t width, uint32_t height);
+    void Terminate(void);
+    void Shutdown(void);
+    void Present(void);
 
     extern ID3D12Device* g_Device;
+    extern CommandListManager g_CommandManager;
 }

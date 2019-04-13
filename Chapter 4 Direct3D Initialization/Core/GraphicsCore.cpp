@@ -14,6 +14,8 @@
 #include "pch.h"
 #include "GraphicsCore.h"
 #include "GameCore.h"
+#include "SystemTime.h"
+#include "CommandListManager.h"
 
 #include <dxgi1_6.h>
 #include <winreg.h>        // To read the registry
@@ -31,15 +33,28 @@ namespace GameCore
 
 namespace
 {
+    // 帧数相关
     float s_FrameTime = 0.0f;
     uint64_t s_FrameIndex = 0;
     int64_t s_FrameStartTick = 0;
 
+    BoolVar s_LimitTo30Hz("Timing/Limit To 30Hz", false);
+    BoolVar s_DropRandomFrames("Timing/Drop Random Frames", false);
 }
 
 namespace Graphics
 {
+    // 垂直同步
+    BoolVar s_EnableVSync("Timing/VSync", true);
+
     ID3D12Device* g_Device = nullptr;
+
+    CommandListManager g_CommandManager;
+}
+
+void Graphics::Resize(uint32_t width, uint32_t height)
+{
+    g_CommandManager.IdleGPU();
 }
 
 // Initialize the DirectX resources required to run.
@@ -97,4 +112,66 @@ void Graphics::Initialize(void)
         ASSERT_SUCCEEDED(D3D12CreateDevice(pAdapter.Get(), D3D_FEATURE_LEVEL_11_0, MY_IID_PPV_ARGS(&pDevice)));
         g_Device = pDevice.Detach();
     }
+
+    // 创建命令队列、命令列表、命令分配器
+    g_CommandManager.Create(g_Device);
+}
+
+void Graphics::Terminate(void)
+{
+    g_CommandManager.IdleGPU();
+}
+
+void Graphics::Shutdown(void)
+{
+    g_CommandManager.Shutdown();
+   
+#if defined(_DEBUG)
+    ID3D12DebugDevice * debugInterface;
+    if (SUCCEEDED(g_Device->QueryInterface(&debugInterface)))
+    {
+        debugInterface->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
+        debugInterface->Release();
+    }
+#endif
+
+    SAFE_RELEASE(g_Device);
+}
+
+void Graphics::Present(void)
+{
+    UINT PresentInterval = s_EnableVSync ? std::min(4, (int)Round(s_FrameTime * 60.0f)) : 0;
+
+    // Test robustness to handle spikes in CPU time
+    //if (s_DropRandomFrames)
+    //{
+    //    if (std::rand() % 25 == 0)
+    //        BusyLoopSleep(0.010);
+    //}
+
+    int64_t CurrentTick = SystemTime::GetCurrentTick();
+
+    if (s_EnableVSync)
+    {
+        // With VSync enabled, the time step between frames becomes a multiple of 16.666 ms.  We need
+        // to add logic to vary between 1 and 2 (or 3 fields).  This delta time also determines how
+        // long the previous frame should be displayed (i.e. the present interval.)
+        s_FrameTime = (s_LimitTo30Hz ? 2.0f : 1.0f) / 60.0f;
+        if (s_DropRandomFrames)
+        {
+            if (std::rand() % 50 == 0)
+                s_FrameTime += (1.0f / 60.0f);
+        }
+    }
+    else
+    {
+        // When running free, keep the most recent total frame time as the time step for
+        // the next frame simulation.  This is not super-accurate, but assuming a frame
+        // time varies smoothly, it should be close enough.
+        s_FrameTime = (float)SystemTime::TimeBetweenTicks(s_FrameStartTick, CurrentTick);
+    }
+
+    s_FrameStartTick = CurrentTick;
+
+    ++s_FrameIndex;
 }

@@ -14,6 +14,7 @@
 #include "pch.h"
 #include "GameCore.h"
 #include "GraphicsCore.h"
+#include "SystemTime.h"
 
 #pragma comment(lib, "runtimeobject.lib")
 

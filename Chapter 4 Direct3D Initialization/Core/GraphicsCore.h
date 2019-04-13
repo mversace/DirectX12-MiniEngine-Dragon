@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include "DescriptorHeap.h"
+
 class CommandListManager;
 
 namespace Graphics
@@ -34,4 +36,10 @@ namespace Graphics
 
     extern ID3D12Device* g_Device;
     extern CommandListManager g_CommandManager;
+
+    extern DescriptorAllocator g_DescriptorAllocator[];
+    inline D3D12_CPU_DESCRIPTOR_HANDLE AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE Type, UINT Count = 1)
+    {
+        return g_DescriptorAllocator[Type].Allocate(Count);
+    }
 }

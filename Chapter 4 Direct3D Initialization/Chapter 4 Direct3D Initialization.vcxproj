@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="Core\CommandAllocatorPool.cpp" />
     <ClCompile Include="Core\CommandListManager.cpp" />
+    <ClCompile Include="Core\DescriptorHeap.cpp" />
     <ClCompile Include="Core\EngineTuning.cpp" />
     <ClCompile Include="Core\GameCore.cpp" />
     <ClCompile Include="Core\GraphicsCore.cpp" />
@@ -36,6 +37,7 @@
     <ClInclude Include="Core\CommandAllocatorPool.h" />
     <ClInclude Include="Core\CommandListManager.h" />
     <ClInclude Include="Core\d3dx12.h" />
+    <ClInclude Include="Core\DescriptorHeap.h" />
     <ClInclude Include="Core\EngineTuning.h" />
     <ClInclude Include="Core\GameCore.h" />
     <ClInclude Include="Core\GraphicsCore.h" />
@@ -61,6 +63,7 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="Core\readme\readme_command.txt" />
+    <Text Include="Core\readme\readme_descriptorHeap.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

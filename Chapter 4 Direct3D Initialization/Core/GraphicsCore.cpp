@@ -15,6 +15,7 @@
 #include "GraphicsCore.h"
 #include "GameCore.h"
 #include "SystemTime.h"
+#include "DescriptorHeap.h"
 #include "CommandListManager.h"
 
 #include <dxgi1_6.h>
@@ -59,6 +60,14 @@ namespace Graphics
     CommandListManager g_CommandManager;
 
     IDXGISwapChain1* s_SwapChain1 = nullptr;
+
+    DescriptorAllocator g_DescriptorAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] =
+    {
+        D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+        D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
+        D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
+        D3D12_DESCRIPTOR_HEAP_TYPE_DSV,
+    };
 }
 
 void Graphics::Resize(uint32_t width, uint32_t height)

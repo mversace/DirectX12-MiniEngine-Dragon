@@ -25,6 +25,9 @@
     <Filter Include="Core\Graphics\Command">
       <UniqueIdentifier>{0d22c1f6-b06c-4265-bc53-ccbd7c68f802}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Graphics\DescriptorHeap">
+      <UniqueIdentifier>{63ce9bb1-0614-44f0-99a3-0a6d1f7abca7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GameApp.cpp">
@@ -62,6 +65,9 @@
     </ClCompile>
     <ClCompile Include="Core\EngineTuning.cpp">
       <Filter>Core\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\DescriptorHeap.cpp">
+      <Filter>Core\Graphics\DescriptorHeap</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -131,6 +137,9 @@
     <ClInclude Include="Core\EngineTuning.h">
       <Filter>Core\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Core\DescriptorHeap.h">
+      <Filter>Core\Graphics\DescriptorHeap</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Core\Math\Functions.inl">
@@ -140,6 +149,9 @@
   <ItemGroup>
     <Text Include="Core\readme\readme_command.txt">
       <Filter>Core\Graphics\Command</Filter>
+    </Text>
+    <Text Include="Core\readme\readme_descriptorHeap.txt">
+      <Filter>Core\Graphics\DescriptorHeap</Filter>
     </Text>
   </ItemGroup>
 </Project>

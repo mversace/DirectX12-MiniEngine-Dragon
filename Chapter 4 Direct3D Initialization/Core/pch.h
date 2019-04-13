@@ -46,3 +46,6 @@
 
 #include <wrl.h>
 #include <ppltasks.h>
+
+#include "Utility.h"
+#include "VectorMath.h"

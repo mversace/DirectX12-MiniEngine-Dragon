@@ -20,15 +20,34 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\GameCore.cpp" />
+    <ClCompile Include="Core\Math\Frustum.cpp" />
+    <ClCompile Include="Core\Math\Random.cpp" />
     <ClCompile Include="Core\pch.cpp" />
+    <ClCompile Include="Core\Utility.cpp" />
     <ClCompile Include="GameApp.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\d3dx12.h" />
     <ClInclude Include="Core\GameCore.h" />
+    <ClInclude Include="Core\Math\BoundingPlane.h" />
+    <ClInclude Include="Core\Math\BoundingSphere.h" />
+    <ClInclude Include="Core\Math\Common.h" />
+    <ClInclude Include="Core\Math\Frustum.h" />
+    <ClInclude Include="Core\Math\Matrix3.h" />
+    <ClInclude Include="Core\Math\Matrix4.h" />
+    <ClInclude Include="Core\Math\Quaternion.h" />
+    <ClInclude Include="Core\Math\Random.h" />
+    <ClInclude Include="Core\Math\Scalar.h" />
+    <ClInclude Include="Core\Math\Transform.h" />
+    <ClInclude Include="Core\Math\Vector.h" />
     <ClInclude Include="Core\pch.h" />
+    <ClInclude Include="Core\Utility.h" />
+    <ClInclude Include="Core\VectorMath.h" />
     <ClInclude Include="GameApp.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Core\Math\Functions.inl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

@@ -1,6 +1,7 @@
 # DirectX12-MiniEngine-Dragon
 
 基于 Microsolf:MiniEngine https://github.com/Microsoft/DirectX-Graphics-Samples/tree/master/MiniEngine
+    dx12龙书代码： https://github.com/d3dcoder/d3d12book
 
 学习dx12龙书，通过把MiniEngine拆分，来实现对应的章节内容
 

@@ -15,9 +15,9 @@
 #include "pch.h"
 // #include "TextRenderer.h"
 // #include "GameInput.h"
-//#include "Color.h"
+#include "Color.h"
 #include "GraphicsCore.h"
-//#include "CommandContext.h"
+#include "CommandContext.h"
 // #include "GraphRenderer.h"
 
 using namespace std;

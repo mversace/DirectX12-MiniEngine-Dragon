@@ -28,6 +28,9 @@
     <Filter Include="Core\Graphics\DescriptorHeap">
       <UniqueIdentifier>{63ce9bb1-0614-44f0-99a3-0a6d1f7abca7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Graphics\Resource">
+      <UniqueIdentifier>{06882983-a134-4934-b713-ddc9adb8245d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GameApp.cpp">
@@ -68,6 +71,21 @@
     </ClCompile>
     <ClCompile Include="Core\DescriptorHeap.cpp">
       <Filter>Core\Graphics\DescriptorHeap</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\CommandContext.cpp">
+      <Filter>Core\Graphics\Command</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\PixelBuffer.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\ColorBuffer.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\DepthBuffer.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Color.cpp">
+      <Filter>Core\Graphics</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -140,6 +158,27 @@
     <ClInclude Include="Core\DescriptorHeap.h">
       <Filter>Core\Graphics\DescriptorHeap</Filter>
     </ClInclude>
+    <ClInclude Include="Core\CommandContext.h">
+      <Filter>Core\Graphics\Command</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\EsramAllocator.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GpuResource.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\PixelBuffer.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\ColorBuffer.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\DepthBuffer.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Color.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Core\Math\Functions.inl">
@@ -152,6 +191,9 @@
     </Text>
     <Text Include="Core\readme\readme_descriptorHeap.txt">
       <Filter>Core\Graphics\DescriptorHeap</Filter>
+    </Text>
+    <Text Include="Core\readme\readme_resource.txt">
+      <Filter>Core\Graphics\Resource</Filter>
     </Text>
   </ItemGroup>
 </Project>

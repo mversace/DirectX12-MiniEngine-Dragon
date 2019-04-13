@@ -19,8 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Core\Color.cpp" />
+    <ClCompile Include="Core\ColorBuffer.cpp" />
     <ClCompile Include="Core\CommandAllocatorPool.cpp" />
+    <ClCompile Include="Core\CommandContext.cpp" />
     <ClCompile Include="Core\CommandListManager.cpp" />
+    <ClCompile Include="Core\DepthBuffer.cpp" />
     <ClCompile Include="Core\DescriptorHeap.cpp" />
     <ClCompile Include="Core\EngineTuning.cpp" />
     <ClCompile Include="Core\GameCore.cpp" />
@@ -28,18 +32,25 @@
     <ClCompile Include="Core\Math\Frustum.cpp" />
     <ClCompile Include="Core\Math\Random.cpp" />
     <ClCompile Include="Core\pch.cpp" />
+    <ClCompile Include="Core\PixelBuffer.cpp" />
     <ClCompile Include="Core\SystemTime.cpp" />
     <ClCompile Include="Core\Utility.cpp" />
     <ClCompile Include="GameApp.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Core\Color.h" />
+    <ClInclude Include="Core\ColorBuffer.h" />
     <ClInclude Include="Core\CommandAllocatorPool.h" />
+    <ClInclude Include="Core\CommandContext.h" />
     <ClInclude Include="Core\CommandListManager.h" />
     <ClInclude Include="Core\d3dx12.h" />
+    <ClInclude Include="Core\DepthBuffer.h" />
     <ClInclude Include="Core\DescriptorHeap.h" />
     <ClInclude Include="Core\EngineTuning.h" />
+    <ClInclude Include="Core\EsramAllocator.h" />
     <ClInclude Include="Core\GameCore.h" />
+    <ClInclude Include="Core\GpuResource.h" />
     <ClInclude Include="Core\GraphicsCore.h" />
     <ClInclude Include="Core\Math\BoundingPlane.h" />
     <ClInclude Include="Core\Math\BoundingSphere.h" />
@@ -53,6 +64,7 @@
     <ClInclude Include="Core\Math\Transform.h" />
     <ClInclude Include="Core\Math\Vector.h" />
     <ClInclude Include="Core\pch.h" />
+    <ClInclude Include="Core\PixelBuffer.h" />
     <ClInclude Include="Core\SystemTime.h" />
     <ClInclude Include="Core\Utility.h" />
     <ClInclude Include="Core\VectorMath.h" />
@@ -64,6 +76,7 @@
   <ItemGroup>
     <Text Include="Core\readme\readme_command.txt" />
     <Text Include="Core\readme\readme_descriptorHeap.txt" />
+    <Text Include="Core\readme\readme_resource.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

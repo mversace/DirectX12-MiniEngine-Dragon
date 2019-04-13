@@ -15,27 +15,97 @@
 #include "GameCore.h"
 #include "GraphicsCore.h"
 #include "SystemTime.h"
+// #include "GameInput.h"
+//#include "BufferManager.h"
+#include "CommandContext.h"
+// #include "PostEffects.h"
 
-#pragma comment(lib, "runtimeobject.lib")
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+    #pragma comment(lib, "runtimeobject.lib")
+#else
+    #include <agile.h>
+    using namespace Windows::ApplicationModel;
+    using namespace Windows::UI::Core;
+    using namespace Windows::UI::ViewManagement;
+    using Windows::ApplicationModel::Core::CoreApplication;
+    using Windows::ApplicationModel::Core::CoreApplicationView;
+    using Windows::ApplicationModel::Activation::IActivatedEventArgs;
+    using Windows::Foundation::TypedEventHandler;
+#endif
+
+namespace Graphics
+{
+    extern ColorBuffer g_GenMipsBuffer;
+}
 
 namespace GameCore
 {
-	void InitializeApplication(IGameApp& game)
+    using namespace Graphics;
+    const bool TestGenerateMips = false;
+
+	bool InitializeApplication(IGameApp& game)
     {
-        Graphics::Initialize();
+		if (!Graphics::Initialize())
+			return false;
+
+        SystemTime::Initialize();
+//        GameInput::Initialize();
+//        EngineTuning::Initialize();
 
         game.Startup();
+
+		return true;
 	}
 
     void TerminateApplication( IGameApp& game )
     {
         game.Cleanup();
+
+//        GameInput::Shutdown();
     }
 
 	void UpdateApplication(IGameApp& game)
     {
-        game.Update(10);
+//        EngineProfiling::Update();
+
+        float DeltaTime = Graphics::GetFrameTime();
+    
+//        GameInput::Update(DeltaTime);
+//        EngineTuning::Update(DeltaTime);
+        
+        game.Update(DeltaTime);
         game.RenderScene();
+
+//         PostEffects::Render();
+// 
+//         if (TestGenerateMips)
+//         {
+//             GraphicsContext& MipsContext = GraphicsContext::Begin();
+// 
+//             // Exclude from timings this copy necessary to setup the test
+//             MipsContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_GENERIC_READ);
+//             MipsContext.TransitionResource(g_GenMipsBuffer, D3D12_RESOURCE_STATE_COPY_DEST);
+//             MipsContext.CopySubresource(g_GenMipsBuffer, 0, g_SceneColorBuffer, 0);
+// 
+//             EngineProfiling::BeginBlock(L"GenerateMipMaps()", &MipsContext);
+//             g_GenMipsBuffer.GenerateMipMaps(MipsContext);
+//             EngineProfiling::EndBlock(&MipsContext);
+// 
+//             MipsContext.Finish();
+//         }
+// 
+//         GraphicsContext& UiContext = GraphicsContext::Begin(L"Render UI");
+//         UiContext.TransitionResource(g_OverlayBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+//         UiContext.ClearColor(g_OverlayBuffer);
+//         UiContext.SetRenderTarget(g_OverlayBuffer.GetRTV());
+//         UiContext.SetViewportAndScissor(0, 0, g_OverlayBuffer.GetWidth(), g_OverlayBuffer.GetHeight());
+//         game.RenderUI(UiContext);
+//
+//        EngineTuning::Display( UiContext, 10.0f, 40.0f, 1900.0f, 1040.0f );
+//
+//        UiContext.Finish();
+
+        Graphics::Present();
     }
 
 	HWND g_hWnd = nullptr;
@@ -74,7 +144,8 @@ namespace GameCore
 
 		ASSERT(g_hWnd != 0);
 
-        InitializeApplication(app);
+		if (!InitializeApplication(app))
+			return;
 
 		ShowWindow(g_hWnd, SW_SHOWDEFAULT);
 
@@ -92,7 +163,9 @@ namespace GameCore
 			}
 		}
 
+		Graphics::Terminate();
 		TerminateApplication(app);
+		Graphics::Shutdown();
 	}
 
 	//--------------------------------------------------------------------------------------
@@ -103,6 +176,7 @@ namespace GameCore
 		switch (message)
 		{
 		case WM_SIZE:
+			Graphics::Resize((UINT)(UINT64)lParam & 0xFFFF, (UINT)(UINT64)lParam >> 16);
 			break;
 
 		case WM_DESTROY:

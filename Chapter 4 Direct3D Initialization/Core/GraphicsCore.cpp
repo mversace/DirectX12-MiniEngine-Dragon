@@ -20,6 +20,10 @@
 #include <dxgi1_6.h>
 #include <winreg.h>        // To read the registry
 
+#define SWAP_CHAIN_BUFFER_COUNT 3
+
+DXGI_FORMAT SwapChainFormat = DXGI_FORMAT_R10G10B10A2_UNORM;
+
 #ifndef SAFE_RELEASE
 #define SAFE_RELEASE(x) if (x != nullptr) { x->Release(); x = nullptr; }
 #endif
@@ -47,19 +51,44 @@ namespace Graphics
     // 垂直同步
     BoolVar s_EnableVSync("Timing/VSync", true);
 
+    uint32_t g_DisplayWidth = 1920;
+    uint32_t g_DisplayHeight = 1080;
+
     ID3D12Device* g_Device = nullptr;
 
     CommandListManager g_CommandManager;
+
+    IDXGISwapChain1* s_SwapChain1 = nullptr;
 }
 
 void Graphics::Resize(uint32_t width, uint32_t height)
 {
+    ASSERT(s_SwapChain1 != nullptr);
+
+    // Check for invalid window dimensions
+    if (width == 0 || height == 0)
+        return;
+
+    // Check for an unneeded resize
+    if (width == g_DisplayWidth && height == g_DisplayHeight)
+        return;
+
     g_CommandManager.IdleGPU();
+
+    g_DisplayWidth = width;
+    g_DisplayHeight = height;
+
+    DEBUGPRINT("Changing display resolution to %ux%u", width, height);
+
+    ASSERT_SUCCEEDED(s_SwapChain1->ResizeBuffers(SWAP_CHAIN_BUFFER_COUNT, width, height, SwapChainFormat, 0));
+
 }
 
 // Initialize the DirectX resources required to run.
 void Graphics::Initialize(void)
 {
+    ASSERT(s_SwapChain1 == nullptr, "Graphics has already been initialized");
+
     Microsoft::WRL::ComPtr<ID3D12Device> pDevice;
 
 #if _DEBUG
@@ -115,16 +144,33 @@ void Graphics::Initialize(void)
 
     // 创建命令队列、命令列表、命令分配器
     g_CommandManager.Create(g_Device);
+
+    DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+    swapChainDesc.Width = g_DisplayWidth;
+    swapChainDesc.Height = g_DisplayHeight;
+    swapChainDesc.Format = SwapChainFormat;
+    swapChainDesc.Scaling = DXGI_SCALING_NONE;
+    swapChainDesc.SampleDesc.Quality = 0;
+    swapChainDesc.SampleDesc.Count = 1;
+    swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    swapChainDesc.BufferCount = SWAP_CHAIN_BUFFER_COUNT;
+    swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+    swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+
+    ASSERT_SUCCEEDED(dxgiFactory->CreateSwapChainForHwnd(g_CommandManager.GetCommandQueue(), GameCore::g_hWnd, &swapChainDesc, nullptr, nullptr, &s_SwapChain1));
+
 }
 
 void Graphics::Terminate(void)
 {
     g_CommandManager.IdleGPU();
+    s_SwapChain1->SetFullscreenState(FALSE, nullptr);
 }
 
 void Graphics::Shutdown(void)
 {
     g_CommandManager.Shutdown();
+    s_SwapChain1->Release();
    
 #if defined(_DEBUG)
     ID3D12DebugDevice * debugInterface;
@@ -141,6 +187,8 @@ void Graphics::Shutdown(void)
 void Graphics::Present(void)
 {
     UINT PresentInterval = s_EnableVSync ? std::min(4, (int)Round(s_FrameTime * 60.0f)) : 0;
+    
+    s_SwapChain1->Present(PresentInterval, 0);
 
     // Test robustness to handle spikes in CPU time
     //if (s_DropRandomFrames)

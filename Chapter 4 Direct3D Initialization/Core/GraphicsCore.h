@@ -29,6 +29,9 @@ namespace Graphics
     void Shutdown(void);
     void Present(void);
 
+    extern uint32_t g_DisplayWidth;
+    extern uint32_t g_DisplayHeight;
+
     extern ID3D12Device* g_Device;
     extern CommandListManager g_CommandManager;
 }

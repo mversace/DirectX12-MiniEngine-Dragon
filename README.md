@@ -3,6 +3,8 @@
 基于 Microsolf:MiniEngine https://github.com/Microsoft/DirectX-Graphics-Samples/tree/master/MiniEngine  
 dx12龙书代码： https://github.com/d3dcoder/d3d12book  
   
+visual studio 2019  
+  
 学习dx12龙书，通过把MiniEngine拆分，来实现对应的章节内容  
   
 MiniEngine是很完善的一个dx12的核心库。但一上来就看这么大的东西，这么多文件，研究透很花时间。  

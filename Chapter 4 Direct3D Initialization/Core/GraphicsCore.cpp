@@ -499,7 +499,7 @@ void Graphics::Shutdown( void )
     DescriptorAllocator::DestroyAll();
 
 //     DestroyCommonState();
-//     DestroyRenderingBuffers();
+     DestroyRenderingBuffers();
 //     TemporalEffects::Shutdown();
 //     PostEffects::Shutdown();
 //     SSAO::Shutdown();

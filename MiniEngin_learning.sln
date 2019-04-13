@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28729.10
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter 4 Direct3D Initialization", "Chapter 4 Direct3D Initialization\Chapter 4 Direct3D Initialization.vcxproj", "{4E0EAF7C-2F52-4571-95C6-E0C1C388AACB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4E0EAF7C-2F52-4571-95C6-E0C1C388AACB}.Debug|x64.ActiveCfg = Debug|x64
+		{4E0EAF7C-2F52-4571-95C6-E0C1C388AACB}.Debug|x64.Build.0 = Debug|x64
+		{4E0EAF7C-2F52-4571-95C6-E0C1C388AACB}.Debug|x86.ActiveCfg = Debug|Win32
+		{4E0EAF7C-2F52-4571-95C6-E0C1C388AACB}.Debug|x86.Build.0 = Debug|Win32
+		{4E0EAF7C-2F52-4571-95C6-E0C1C388AACB}.Release|x64.ActiveCfg = Release|x64
+		{4E0EAF7C-2F52-4571-95C6-E0C1C388AACB}.Release|x64.Build.0 = Release|x64
+		{4E0EAF7C-2F52-4571-95C6-E0C1C388AACB}.Release|x86.ActiveCfg = Release|Win32
+		{4E0EAF7C-2F52-4571-95C6-E0C1C388AACB}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1720D5F1-846E-4A02-8300-18522555EE19}
+	EndGlobalSection
+EndGlobal

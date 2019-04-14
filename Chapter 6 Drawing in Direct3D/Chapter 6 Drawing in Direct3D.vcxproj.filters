@@ -1,0 +1,205 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{fd9089e2-734c-4bad-b2ce-cc11f04b9f98}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Graphics">
+      <UniqueIdentifier>{e65cfc36-3851-4498-8574-cdcf5eb08cd8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Graphics\Command">
+      <UniqueIdentifier>{851e2de2-3be9-4647-9e52-455dc7ac25b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Graphics\DescriptorHeap">
+      <UniqueIdentifier>{95690c67-5ff5-4e7e-86f5-883b6a3a0c9d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Graphics\Resource">
+      <UniqueIdentifier>{4f948397-b962-422e-8961-f32a27cb1138}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Math">
+      <UniqueIdentifier>{ff5008d4-492f-4e39-b7aa-56e8ee1bac74}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Core\CommandContext.cpp">
+      <Filter>Core\Graphics\Command</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\CommandListManager.cpp">
+      <Filter>Core\Graphics\Command</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\CommandAllocatorPool.cpp">
+      <Filter>Core\Graphics\Command</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\DescriptorHeap.cpp">
+      <Filter>Core\Graphics\DescriptorHeap</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\PixelBuffer.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\BufferManager.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\ColorBuffer.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\DepthBuffer.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\GraphicsCore.cpp">
+      <Filter>Core\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\SystemTime.cpp">
+      <Filter>Core\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Color.cpp">
+      <Filter>Core\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\EngineTuning.cpp">
+      <Filter>Core\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Math\Frustum.cpp">
+      <Filter>Core\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Math\Random.cpp">
+      <Filter>Core\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\GameCore.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\pch.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Utility.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="GameApp.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Core\CommandContext.h">
+      <Filter>Core\Graphics\Command</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\CommandListManager.h">
+      <Filter>Core\Graphics\Command</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\CommandAllocatorPool.h">
+      <Filter>Core\Graphics\Command</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\DescriptorHeap.h">
+      <Filter>Core\Graphics\DescriptorHeap</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GpuResource.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\PixelBuffer.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\BufferManager.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\ColorBuffer.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\DepthBuffer.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\EsramAllocator.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GraphicsCore.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\SystemTime.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Color.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\d3dx12.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\EngineTuning.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Math\BoundingPlane.h">
+      <Filter>Core\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Math\BoundingSphere.h">
+      <Filter>Core\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Math\Common.h">
+      <Filter>Core\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Math\Frustum.h">
+      <Filter>Core\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Math\Matrix3.h">
+      <Filter>Core\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Math\Matrix4.h">
+      <Filter>Core\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Math\Quaternion.h">
+      <Filter>Core\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Math\Random.h">
+      <Filter>Core\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Math\Scalar.h">
+      <Filter>Core\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Math\Transform.h">
+      <Filter>Core\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Math\Vector.h">
+      <Filter>Core\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Utility.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\VectorMath.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GameCore.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\pch.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="GameApp.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Core\readme\readme_command.txt">
+      <Filter>Core\Graphics\Command</Filter>
+    </Text>
+    <Text Include="Core\readme\readme_descriptorHeap.txt">
+      <Filter>Core\Graphics\DescriptorHeap</Filter>
+    </Text>
+    <Text Include="Core\readme\readme_resource.txt">
+      <Filter>Core\Graphics\Resource</Filter>
+    </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Core\Math\Functions.inl">
+      <Filter>Core\Math</Filter>
+    </None>
+  </ItemGroup>
+</Project>

@@ -15,13 +15,18 @@
 
 #include "ColorBuffer.h"
 #include "DepthBuffer.h"
+#include "GpuBuffer.h"
 #include "GraphicsCore.h"
 
 namespace Graphics
 {
     extern DepthBuffer g_SceneDepthBuffer;    // D32_FLOAT_S8_UINT
+    extern ColorBuffer g_SceneColorBuffer;    // R11G11B10_FLOAT
+    extern ColorBuffer g_OverlayBuffer;        // R8G8B8A8_UNORM
+    extern ColorBuffer g_HorizontalBuffer;    // For separable (bicubic) upsampling
 
     void InitializeRenderingBuffers(uint32_t NativeWidth, uint32_t NativeHeight );
+    void ResizeDisplayDependentBuffers(uint32_t NativeWidth, uint32_t NativeHeight);
     void DestroyRenderingBuffers();
 
 } // namespace Graphics

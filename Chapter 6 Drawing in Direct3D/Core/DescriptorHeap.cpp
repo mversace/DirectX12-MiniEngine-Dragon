@@ -63,7 +63,6 @@ D3D12_CPU_DESCRIPTOR_HANDLE DescriptorAllocator::Allocate( uint32_t Count )
     return ret;
 }
 
-/*
 //
 // UserDescriptorHeap implementation
 //
@@ -103,4 +102,3 @@ bool UserDescriptorHeap::ValidateHandle( const DescriptorHandle& DHandle ) const
 
     return true;
 }
-*/

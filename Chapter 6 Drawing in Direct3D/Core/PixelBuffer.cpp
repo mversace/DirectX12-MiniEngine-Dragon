@@ -17,8 +17,8 @@
 #include "GraphicsCore.h"
 #include "BufferManager.h"
 #include "CommandContext.h"
-//#include "ReadbackBuffer.h"
-//#include <fstream>
+#include "ReadbackBuffer.h"
+#include <fstream>
 
 using namespace Graphics;
 
@@ -378,26 +378,26 @@ void PixelBuffer::CreateTextureResource( ID3D12Device* Device, const std::wstrin
     CreateTextureResource(Device, Name, ResourceDesc, ClearValue);
 }
 
-// void PixelBuffer::ExportToFile( const std::wstring& FilePath )
-// {
-//     // Create the buffer.  We will release it after all is done.
-//     ReadbackBuffer TempBuffer;
-//     TempBuffer.Create(L"Temporary Readback Buffer", m_Width * m_Height, (uint32_t)BytesPerPixel(m_Format));
-// 
-//     CommandContext::ReadbackTexture2D(TempBuffer, *this);
-// 
-//     // Retrieve a CPU-visible pointer to the buffer memory.  Map the whole range for reading.
-//     void* Memory = TempBuffer.Map();
-// 
-//     // Open the file and write the header followed by the texel data.
-//     std::ofstream OutFile(FilePath, std::ios::out | std::ios::binary);
-//     OutFile.write((const char*)&m_Format, 4);
-//     OutFile.write((const char*)&m_Width, 4); // Pitch
-//     OutFile.write((const char*)&m_Width, 4);
-//     OutFile.write((const char*)&m_Height, 4);
-//     OutFile.write((const char*)Memory, TempBuffer.GetBufferSize());
-//     OutFile.close();
-// 
-//     // No values were written to the buffer, so use a null range when unmapping.
-//     TempBuffer.Unmap();
-// }
+void PixelBuffer::ExportToFile( const std::wstring& FilePath )
+{
+    // Create the buffer.  We will release it after all is done.
+    ReadbackBuffer TempBuffer;
+    TempBuffer.Create(L"Temporary Readback Buffer", m_Width * m_Height, (uint32_t)BytesPerPixel(m_Format));
+
+    CommandContext::ReadbackTexture2D(TempBuffer, *this);
+
+    // Retrieve a CPU-visible pointer to the buffer memory.  Map the whole range for reading.
+    void* Memory = TempBuffer.Map();
+
+    // Open the file and write the header followed by the texel data.
+    std::ofstream OutFile(FilePath, std::ios::out | std::ios::binary);
+    OutFile.write((const char*)&m_Format, 4);
+    OutFile.write((const char*)&m_Width, 4); // Pitch
+    OutFile.write((const char*)&m_Width, 4);
+    OutFile.write((const char*)&m_Height, 4);
+    OutFile.write((const char*)Memory, TempBuffer.GetBufferSize());
+    OutFile.close();
+
+    // No values were written to the buffer, so use a null range when unmapping.
+    TempBuffer.Unmap();
+}

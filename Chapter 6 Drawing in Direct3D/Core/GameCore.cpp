@@ -82,61 +82,62 @@ namespace GameCore
 // 
 //             MipsContext.Finish();
 //         }
-// 
-//         GraphicsContext& UiContext = GraphicsContext::Begin(L"Render UI");
-//         UiContext.TransitionResource(g_OverlayBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
-//         UiContext.ClearColor(g_OverlayBuffer);
-//         UiContext.SetRenderTarget(g_OverlayBuffer.GetRTV());
-//         UiContext.SetViewportAndScissor(0, 0, g_OverlayBuffer.GetWidth(), g_OverlayBuffer.GetHeight());
-//         game.RenderUI(UiContext);
-//
+ 
+        GraphicsContext& UiContext = GraphicsContext::Begin(L"Render UI");
+        UiContext.TransitionResource(g_OverlayBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+        UiContext.ClearColor(g_OverlayBuffer);
+        UiContext.SetRenderTarget(g_OverlayBuffer.GetRTV());
+        UiContext.SetViewportAndScissor(0, 0, g_OverlayBuffer.GetWidth(), g_OverlayBuffer.GetHeight());
+        game.RenderUI(UiContext);
+
 //        EngineTuning::Display( UiContext, 10.0f, 40.0f, 1900.0f, 1040.0f );
-//
-//        UiContext.Finish();
+
+        UiContext.Finish();
 
         Graphics::Present();
     }
 
-	HWND g_hWnd = nullptr;
 
-	LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+    HWND g_hWnd = nullptr;
+
+    LRESULT CALLBACK WndProc( HWND, UINT, WPARAM, LPARAM );
 
 	void RunApplication(IGameApp& app, HINSTANCE hInst, const wchar_t* className)
-	{
-		//ASSERT_SUCCEEDED(CoInitializeEx(nullptr, COINITBASE_MULTITHREADED));
-		Microsoft::WRL::Wrappers::RoInitializeWrapper InitializeWinRT(RO_INIT_MULTITHREADED);
-		ASSERT_SUCCEEDED(InitializeWinRT);
+    {
+        //ASSERT_SUCCEEDED(CoInitializeEx(nullptr, COINITBASE_MULTITHREADED));
+        Microsoft::WRL::Wrappers::RoInitializeWrapper InitializeWinRT(RO_INIT_MULTITHREADED);
+        ASSERT_SUCCEEDED(InitializeWinRT);
 
-		// Register class
-		WNDCLASSEX wcex;
-		wcex.cbSize = sizeof(WNDCLASSEX);
-		wcex.style = CS_HREDRAW | CS_VREDRAW;
-		wcex.lpfnWndProc = WndProc;
-		wcex.cbClsExtra = 0;
-		wcex.cbWndExtra = 0;
-		wcex.hInstance = hInst;
-		wcex.hIcon = LoadIcon(hInst, IDI_APPLICATION);
-		wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
-		wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-		wcex.lpszMenuName = nullptr;
-		wcex.lpszClassName = className;
-		wcex.hIconSm = LoadIcon(hInst, IDI_APPLICATION);
-		ASSERT(0 != RegisterClassEx(&wcex), "Unable to register a window");
 
-		// Create window
-		//RECT rc = { 0, 0, (LONG)g_DisplayWidth, (LONG)g_DisplayHeight };
-		RECT rc = { 0, 0, (LONG)800, (LONG)600 };
-		AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
+        // Register class
+        WNDCLASSEX wcex;
+        wcex.cbSize = sizeof(WNDCLASSEX);
+        wcex.style = CS_HREDRAW | CS_VREDRAW;
+        wcex.lpfnWndProc = WndProc;
+        wcex.cbClsExtra = 0;
+        wcex.cbWndExtra = 0;
+        wcex.hInstance = hInst;
+        wcex.hIcon = LoadIcon(hInst, IDI_APPLICATION);
+        wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+        wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+        wcex.lpszMenuName = nullptr;
+        wcex.lpszClassName = className;
+        wcex.hIconSm = LoadIcon(hInst, IDI_APPLICATION);
+        ASSERT(0 != RegisterClassEx(&wcex), "Unable to register a window");
 
-		g_hWnd = CreateWindow(className, className, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
-			rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, hInst, nullptr);
+        // Create window
+        RECT rc = { 0, 0, (LONG)g_DisplayWidth, (LONG)g_DisplayHeight };
+        AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 
-		ASSERT(g_hWnd != 0);
+        g_hWnd = CreateWindow(className, className, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
+            rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, hInst, nullptr);
+
+        ASSERT(g_hWnd != 0);
 
 		if (!InitializeApplication(app))
 			return;
 
-		ShowWindow(g_hWnd, SW_SHOWDEFAULT);
+        ShowWindow( g_hWnd, SW_SHOWDEFAULT );
 
 		MSG msg = {};
 		while (msg.message != WM_QUIT)
@@ -152,30 +153,30 @@ namespace GameCore
 			}
 		}
 
-		Graphics::Terminate();
-		TerminateApplication(app);
-		Graphics::Shutdown();
-	}
+        Graphics::Terminate();
+        TerminateApplication(app);
+        Graphics::Shutdown();
+    }
 
-	//--------------------------------------------------------------------------------------
-	// Called every time the application receives a message
-	//--------------------------------------------------------------------------------------
-	LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-	{
-		switch (message)
-		{
-		case WM_SIZE:
-			Graphics::Resize((UINT)(UINT64)lParam & 0xFFFF, (UINT)(UINT64)lParam >> 16);
-			break;
+    //--------------------------------------------------------------------------------------
+    // Called every time the application receives a message
+    //--------------------------------------------------------------------------------------
+    LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
+    {
+        switch( message )
+        {
+            case WM_SIZE:
+                Graphics::Resize((UINT)(UINT64)lParam & 0xFFFF, (UINT)(UINT64)lParam >> 16);
+                break;
 
-		case WM_DESTROY:
-			PostQuitMessage(0);
-			break;
+            case WM_DESTROY:
+                PostQuitMessage(0);
+                break;
 
-		default:
-			return DefWindowProc(hWnd, message, wParam, lParam);
-		}
+            default:
+                return DefWindowProc( hWnd, message, wParam, lParam );
+        }
 
-		return 0;
-	}
+        return 0;
+    }
 }

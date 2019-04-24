@@ -62,6 +62,8 @@ void ContextManager::FreeContext(CommandContext* UsedContext)
 
 void CommandContext::DestroyAllContexts(void)
 {
+    LinearAllocator::DestroyAll();
+    DynamicDescriptorHeap::DestroyAll();
     g_ContextManager.DestroyAllContexts();
 }
 
@@ -89,6 +91,12 @@ uint64_t CommandContext::Flush(bool WaitForCompletion)
 
     m_CommandList->Reset(m_CurrentAllocator, nullptr);
 
+    if (m_CurGraphicsRootSignature)
+    {
+        m_CommandList->SetGraphicsRootSignature(m_CurGraphicsRootSignature);
+        m_CommandList->SetPipelineState(m_CurGraphicsPipelineState);
+    }
+
     BindDescriptorHeaps();
 
     return FenceValue;
@@ -108,6 +116,11 @@ uint64_t CommandContext::Finish( bool WaitForCompletion )
     Queue.DiscardAllocator(FenceValue, m_CurrentAllocator);
     m_CurrentAllocator = nullptr;
 
+    m_CpuLinearAllocator.CleanupUsedPages(FenceValue);
+    m_GpuLinearAllocator.CleanupUsedPages(FenceValue);
+    m_DynamicViewDescriptorHeap.CleanupUsedHeaps(FenceValue);
+    m_DynamicSamplerDescriptorHeap.CleanupUsedHeaps(FenceValue);
+
     if (WaitForCompletion)
         g_CommandManager.WaitForFence(FenceValue);
 
@@ -117,12 +130,18 @@ uint64_t CommandContext::Finish( bool WaitForCompletion )
 }
 
 CommandContext::CommandContext(D3D12_COMMAND_LIST_TYPE Type) :
-    m_Type(Type)
+    m_Type(Type),
+    m_DynamicViewDescriptorHeap(*this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
+    m_DynamicSamplerDescriptorHeap(*this, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER),
+    m_CpuLinearAllocator(kCpuWritable),
+    m_GpuLinearAllocator(kGpuExclusive)
 {
     m_CommandList = nullptr;
     m_CurrentAllocator = nullptr;
     ZeroMemory(m_CurrentDescriptorHeaps, sizeof(m_CurrentDescriptorHeaps));
 
+    m_CurGraphicsRootSignature = nullptr;
+    m_CurGraphicsPipelineState = nullptr;
     m_NumBarriersToFlush = 0;
 }
 
@@ -145,6 +164,8 @@ void CommandContext::Reset( void )
     m_CurrentAllocator = g_CommandManager.GetQueue(m_Type).RequestAllocator();
     m_CommandList->Reset(m_CurrentAllocator, nullptr);
 
+    m_CurGraphicsRootSignature = nullptr;
+    m_CurGraphicsPipelineState = nullptr;
     m_NumBarriersToFlush = 0;
 
     BindDescriptorHeaps();
@@ -165,6 +186,201 @@ void CommandContext::BindDescriptorHeaps( void )
         m_CommandList->SetDescriptorHeaps(NonNullHeaps, HeapsToBind);
 }
 
+void CommandContext::CopySubresource(GpuResource& Dest, UINT DestSubIndex, GpuResource& Src, UINT SrcSubIndex)
+{
+    FlushResourceBarriers();
+
+    D3D12_TEXTURE_COPY_LOCATION DestLocation =
+    {
+        Dest.GetResource(),
+        D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+        DestSubIndex
+    };
+
+    D3D12_TEXTURE_COPY_LOCATION SrcLocation =
+    {
+        Src.GetResource(),
+        D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+        SrcSubIndex
+    };
+
+    m_CommandList->CopyTextureRegion(&DestLocation, 0, 0, 0, &SrcLocation, nullptr);
+}
+
+void CommandContext::InitializeTexture(GpuResource& Dest, UINT NumSubresources, D3D12_SUBRESOURCE_DATA SubData[])
+{
+    UINT64 uploadBufferSize = GetRequiredIntermediateSize(Dest.GetResource(), 0, NumSubresources);
+
+    CommandContext& InitContext = CommandContext::Begin();
+
+    // copy data to the intermediate upload heap and then schedule a copy from the upload heap to the default texture
+    DynAlloc mem = InitContext.ReserveUploadMemory(uploadBufferSize);
+    UpdateSubresources(InitContext.m_CommandList, Dest.GetResource(), mem.Buffer.GetResource(), 0, 0, NumSubresources, SubData);
+    InitContext.TransitionResource(Dest, D3D12_RESOURCE_STATE_GENERIC_READ);
+
+    // Execute the command list and wait for it to finish so we can release the upload buffer
+    InitContext.Finish(true);
+}
+
+void CommandContext::InitializeBuffer(GpuResource& Dest, const void* BufferData, size_t NumBytes, size_t Offset)
+{
+    CommandContext& InitContext = CommandContext::Begin();
+
+    DynAlloc mem = InitContext.ReserveUploadMemory(NumBytes);
+    SIMDMemCopy(mem.DataPtr, BufferData, Math::DivideByMultiple(NumBytes, 16));
+
+    // copy data to the intermediate upload heap and then schedule a copy from the upload heap to the default texture
+    InitContext.TransitionResource(Dest, D3D12_RESOURCE_STATE_COPY_DEST, true);
+    InitContext.m_CommandList->CopyBufferRegion(Dest.GetResource(), Offset, mem.Buffer.GetResource(), 0, NumBytes);
+    InitContext.TransitionResource(Dest, D3D12_RESOURCE_STATE_GENERIC_READ, true);
+
+    // Execute the command list and wait for it to finish so we can release the upload buffer
+    InitContext.Finish(true);
+}
+
+void CommandContext::InitializeTextureArraySlice(GpuResource& Dest, UINT SliceIndex, GpuResource& Src)
+{
+    CommandContext& Context = CommandContext::Begin();
+
+    Context.TransitionResource(Dest, D3D12_RESOURCE_STATE_COPY_DEST);
+    Context.FlushResourceBarriers();
+
+    const D3D12_RESOURCE_DESC& DestDesc = Dest.GetResource()->GetDesc();
+    const D3D12_RESOURCE_DESC& SrcDesc = Src.GetResource()->GetDesc();
+
+    ASSERT(SliceIndex < DestDesc.DepthOrArraySize &&
+        SrcDesc.DepthOrArraySize == 1 &&
+        DestDesc.Width == SrcDesc.Width &&
+        DestDesc.Height == SrcDesc.Height &&
+        DestDesc.MipLevels <= SrcDesc.MipLevels
+    );
+
+    UINT SubResourceIndex = SliceIndex * DestDesc.MipLevels;
+
+    for (UINT i = 0; i < DestDesc.MipLevels; ++i)
+    {
+        D3D12_TEXTURE_COPY_LOCATION destCopyLocation =
+        {
+            Dest.GetResource(),
+            D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+            SubResourceIndex + i
+        };
+
+        D3D12_TEXTURE_COPY_LOCATION srcCopyLocation =
+        {
+            Src.GetResource(),
+            D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+            i
+        };
+
+        Context.m_CommandList->CopyTextureRegion(&destCopyLocation, 0, 0, 0, &srcCopyLocation, nullptr);
+    }
+
+    Context.TransitionResource(Dest, D3D12_RESOURCE_STATE_GENERIC_READ);
+    Context.Finish(true);
+}
+
+void CommandContext::ReadbackTexture2D(GpuResource& ReadbackBuffer, PixelBuffer& SrcBuffer)
+{
+    // The footprint may depend on the device of the resource, but we assume there is only one device.
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedFootprint;
+    g_Device->GetCopyableFootprints(&SrcBuffer.GetResource()->GetDesc(), 0, 1, 0, &PlacedFootprint, nullptr, nullptr, nullptr);
+
+    // This very short command list only issues one API call and will be synchronized so we can immediately read
+    // the buffer contents.
+    CommandContext& Context = CommandContext::Begin(L"Copy texture to memory");
+
+    Context.TransitionResource(SrcBuffer, D3D12_RESOURCE_STATE_COPY_SOURCE, true);
+
+    Context.m_CommandList->CopyTextureRegion(
+        &CD3DX12_TEXTURE_COPY_LOCATION(ReadbackBuffer.GetResource(), PlacedFootprint), 0, 0, 0,
+        &CD3DX12_TEXTURE_COPY_LOCATION(SrcBuffer.GetResource(), 0), nullptr);
+
+    Context.Finish(true);
+}
+
+void CommandContext::WriteBuffer(GpuResource & Dest, size_t DestOffset, const void* BufferData, size_t NumBytes)
+{
+    ASSERT(BufferData != nullptr && Math::IsAligned(BufferData, 16));
+    DynAlloc TempSpace = m_CpuLinearAllocator.Allocate(NumBytes, 512);
+    SIMDMemCopy(TempSpace.DataPtr, BufferData, Math::DivideByMultiple(NumBytes, 16));
+    CopyBufferRegion(Dest, DestOffset, TempSpace.Buffer, TempSpace.Offset, NumBytes);
+}
+
+void CommandContext::FillBuffer(GpuResource & Dest, size_t DestOffset, DWParam Value, size_t NumBytes)
+{
+    DynAlloc TempSpace = m_CpuLinearAllocator.Allocate(NumBytes, 512);
+    __m128 VectorValue = _mm_set1_ps(Value.Float);
+    SIMDMemFill(TempSpace.DataPtr, VectorValue, Math::DivideByMultiple(NumBytes, 16));
+    CopyBufferRegion(Dest, DestOffset, TempSpace.Buffer, TempSpace.Offset, NumBytes);
+}
+
+void CommandContext::TransitionResource(GpuResource& Resource, D3D12_RESOURCE_STATES NewState, bool FlushImmediate)
+{
+    D3D12_RESOURCE_STATES OldState = Resource.m_UsageState;
+
+    if (m_Type == D3D12_COMMAND_LIST_TYPE_COMPUTE)
+    {
+        ASSERT((OldState & VALID_COMPUTE_QUEUE_RESOURCE_STATES) == OldState);
+        ASSERT((NewState & VALID_COMPUTE_QUEUE_RESOURCE_STATES) == NewState);
+    }
+
+    if (OldState != NewState)
+    {
+        ASSERT(m_NumBarriersToFlush < 16, "Exceeded arbitrary limit on buffered barriers");
+        D3D12_RESOURCE_BARRIER& BarrierDesc = m_ResourceBarrierBuffer[m_NumBarriersToFlush++];
+
+        BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        BarrierDesc.Transition.pResource = Resource.GetResource();
+        BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        BarrierDesc.Transition.StateBefore = OldState;
+        BarrierDesc.Transition.StateAfter = NewState;
+
+        // Check to see if we already started the transition
+        if (NewState == Resource.m_TransitioningState)
+        {
+            BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
+            Resource.m_TransitioningState = (D3D12_RESOURCE_STATES)-1;
+        }
+        else
+            BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+
+        Resource.m_UsageState = NewState;
+    }
+
+    if (FlushImmediate || m_NumBarriersToFlush == 16)
+        FlushResourceBarriers();
+}
+
+void CommandContext::BeginResourceTransition(GpuResource & Resource, D3D12_RESOURCE_STATES NewState, bool FlushImmediate)
+{
+    // If it's already transitioning, finish that transition
+    if (Resource.m_TransitioningState != (D3D12_RESOURCE_STATES)-1)
+        TransitionResource(Resource, Resource.m_TransitioningState);
+
+    D3D12_RESOURCE_STATES OldState = Resource.m_UsageState;
+
+    if (OldState != NewState)
+    {
+        ASSERT(m_NumBarriersToFlush < 16, "Exceeded arbitrary limit on buffered barriers");
+        D3D12_RESOURCE_BARRIER& BarrierDesc = m_ResourceBarrierBuffer[m_NumBarriersToFlush++];
+
+        BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        BarrierDesc.Transition.pResource = Resource.GetResource();
+        BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        BarrierDesc.Transition.StateBefore = OldState;
+        BarrierDesc.Transition.StateAfter = NewState;
+
+        BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY;
+
+        Resource.m_TransitioningState = NewState;
+    }
+
+    if (FlushImmediate || m_NumBarriersToFlush == 16)
+        FlushResourceBarriers();
+}
+
+
 void GraphicsContext::SetRenderTargets( UINT NumRTVs, const D3D12_CPU_DESCRIPTOR_HANDLE RTVs[], D3D12_CPU_DESCRIPTOR_HANDLE DSV )
 {
     m_CommandList->OMSetRenderTargets( NumRTVs, RTVs, FALSE, &DSV );
@@ -173,6 +389,27 @@ void GraphicsContext::SetRenderTargets( UINT NumRTVs, const D3D12_CPU_DESCRIPTOR
 void GraphicsContext::SetRenderTargets(UINT NumRTVs, const D3D12_CPU_DESCRIPTOR_HANDLE RTVs[])
 {
     m_CommandList->OMSetRenderTargets(NumRTVs, RTVs, FALSE, nullptr);
+}
+
+void GraphicsContext::ClearUAV(GpuBuffer& Target)
+{
+    // After binding a UAV, we can get a GPU handle that is required to clear it as a UAV (because it essentially runs
+    // a shader to set all of the values).
+    D3D12_GPU_DESCRIPTOR_HANDLE GpuVisibleHandle = m_DynamicViewDescriptorHeap.UploadDirect(Target.GetUAV());
+    const UINT ClearColor[4] = {};
+    m_CommandList->ClearUnorderedAccessViewUint(GpuVisibleHandle, Target.GetUAV(), Target.GetResource(), ClearColor, 0, nullptr);
+}
+
+void GraphicsContext::ClearUAV(ColorBuffer& Target)
+{
+    // After binding a UAV, we can get a GPU handle that is required to clear it as a UAV (because it essentially runs
+    // a shader to set all of the values).
+    D3D12_GPU_DESCRIPTOR_HANDLE GpuVisibleHandle = m_DynamicViewDescriptorHeap.UploadDirect(Target.GetUAV());
+    CD3DX12_RECT ClearRect(0, 0, (LONG)Target.GetWidth(), (LONG)Target.GetHeight());
+
+    //TODO: My Nvidia card is not clearing UAVs with either Float or Uint variants.
+    const float* ClearColor = Target.GetClearColor().GetPtr();
+    m_CommandList->ClearUnorderedAccessViewFloat(GpuVisibleHandle, Target.GetUAV(), Target.GetResource(), ClearColor, 1, &ClearRect);
 }
 
 void GraphicsContext::ClearColor( ColorBuffer& Target )
@@ -225,67 +462,36 @@ void GraphicsContext::SetScissor( const D3D12_RECT& rect )
     m_CommandList->RSSetScissorRects( 1, &rect );
 }
 
-void CommandContext::TransitionResource(GpuResource& Resource, D3D12_RESOURCE_STATES NewState, bool FlushImmediate)
+inline void GraphicsContext::SetDynamicVB(UINT Slot, size_t NumVertices, size_t VertexStride, const void* VertexData)
 {
-    D3D12_RESOURCE_STATES OldState = Resource.m_UsageState;
+    ASSERT(VertexData != nullptr && Math::IsAligned(VertexData, 16));
 
-    if (m_Type == D3D12_COMMAND_LIST_TYPE_COMPUTE)
-    {
-        ASSERT((OldState & VALID_COMPUTE_QUEUE_RESOURCE_STATES) == OldState);
-        ASSERT((NewState & VALID_COMPUTE_QUEUE_RESOURCE_STATES) == NewState);
-    }
+    size_t BufferSize = Math::AlignUp(NumVertices * VertexStride, 16);
+    DynAlloc vb = m_CpuLinearAllocator.Allocate(BufferSize);
 
-    if (OldState != NewState)
-    {
-        ASSERT(m_NumBarriersToFlush < 16, "Exceeded arbitrary limit on buffered barriers");
-        D3D12_RESOURCE_BARRIER& BarrierDesc = m_ResourceBarrierBuffer[m_NumBarriersToFlush++];
+    SIMDMemCopy(vb.DataPtr, VertexData, BufferSize >> 4);
 
-        BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        BarrierDesc.Transition.pResource = Resource.GetResource();
-        BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        BarrierDesc.Transition.StateBefore = OldState;
-        BarrierDesc.Transition.StateAfter = NewState;
+    D3D12_VERTEX_BUFFER_VIEW VBView;
+    VBView.BufferLocation = vb.GpuAddress;
+    VBView.SizeInBytes = (UINT)BufferSize;
+    VBView.StrideInBytes = (UINT)VertexStride;
 
-        // Check to see if we already started the transition
-        if (NewState == Resource.m_TransitioningState)
-        {
-            BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
-            Resource.m_TransitioningState = (D3D12_RESOURCE_STATES)-1;
-        }
-        else
-            BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-
-        Resource.m_UsageState = NewState;
-    }
-
-    if (FlushImmediate || m_NumBarriersToFlush == 16)
-        FlushResourceBarriers();
+    m_CommandList->IASetVertexBuffers(Slot, 1, &VBView);
 }
 
-void CommandContext::BeginResourceTransition(GpuResource& Resource, D3D12_RESOURCE_STATES NewState, bool FlushImmediate)
+inline void GraphicsContext::SetDynamicIB(size_t IndexCount, const uint16_t * IndexData)
 {
-    // If it's already transitioning, finish that transition
-    if (Resource.m_TransitioningState != (D3D12_RESOURCE_STATES)-1)
-        TransitionResource(Resource, Resource.m_TransitioningState);
+    ASSERT(IndexData != nullptr && Math::IsAligned(IndexData, 16));
 
-    D3D12_RESOURCE_STATES OldState = Resource.m_UsageState;
+    size_t BufferSize = Math::AlignUp(IndexCount * sizeof(uint16_t), 16);
+    DynAlloc ib = m_CpuLinearAllocator.Allocate(BufferSize);
 
-    if (OldState != NewState)
-    {
-        ASSERT(m_NumBarriersToFlush < 16, "Exceeded arbitrary limit on buffered barriers");
-        D3D12_RESOURCE_BARRIER& BarrierDesc = m_ResourceBarrierBuffer[m_NumBarriersToFlush++];
+    SIMDMemCopy(ib.DataPtr, IndexData, BufferSize >> 4);
 
-        BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        BarrierDesc.Transition.pResource = Resource.GetResource();
-        BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        BarrierDesc.Transition.StateBefore = OldState;
-        BarrierDesc.Transition.StateAfter = NewState;
+    D3D12_INDEX_BUFFER_VIEW IBView;
+    IBView.BufferLocation = ib.GpuAddress;
+    IBView.SizeInBytes = (UINT)(IndexCount * sizeof(uint16_t));
+    IBView.Format = DXGI_FORMAT_R16_UINT;
 
-        BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY;
-
-        Resource.m_TransitioningState = NewState;
-    }
-
-    if (FlushImmediate || m_NumBarriersToFlush == 16)
-        FlushResourceBarriers();
+    m_CommandList->IASetIndexBuffer(&IBView);
 }

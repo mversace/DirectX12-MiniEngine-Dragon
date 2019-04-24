@@ -42,7 +42,7 @@ public:
 
     // Write the raw pixel buffer contents to a file
     // Note that data is preceded by a 16-byte header:  { DXGI_FORMAT, Pitch (in pixels), Width (in pixels), Height }
-    //void ExportToFile( const std::wstring& FilePath );
+    void ExportToFile( const std::wstring& FilePath );
 
 protected:
 

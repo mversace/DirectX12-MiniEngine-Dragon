@@ -7,6 +7,9 @@
 --DescriptorHeap
 --描述符堆管理池，需要初始化为一种特定类型，可以分配出对应的描述符堆
 
+--DynamicDescriptorHeap
+--动态的描述符管理器
+
 当GPU操作资源(ID3D12Resource)时，需要知道该资源是什么格式
 这就需要描述符来指定，也就是D3D12_CPU_DESCRIPTOR_HANDLE指定该资源的格式信息
 

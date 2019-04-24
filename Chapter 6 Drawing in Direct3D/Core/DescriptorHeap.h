@@ -56,7 +56,7 @@ protected:
     uint32_t m_RemainingFreeHandles;
 };
 
-/*
+
 class DescriptorHandle
 {
 public:
@@ -104,6 +104,7 @@ private:
     D3D12_GPU_DESCRIPTOR_HANDLE m_GpuHandle;
 };
 
+
 class UserDescriptorHeap
 {
 public:
@@ -136,4 +137,3 @@ private:
     DescriptorHandle m_FirstHandle;
     DescriptorHandle m_NextFreeHandle;
 };
-*/

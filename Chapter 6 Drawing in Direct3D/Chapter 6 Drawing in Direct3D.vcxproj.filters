@@ -105,13 +105,7 @@
     <ClCompile Include="Core\GraphicsCore.cpp">
       <Filter>Core\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Core\SystemTime.cpp">
-      <Filter>Core\Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="Core\Color.cpp">
-      <Filter>Core\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\EngineTuning.cpp">
       <Filter>Core\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Core\Math\Frustum.cpp">
@@ -162,6 +156,21 @@
     <ClCompile Include="Core\ReadbackBuffer.cpp">
       <Filter>Core\Graphics\Resource</Filter>
     </ClCompile>
+    <ClCompile Include="Core\EngineTuning.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\SystemTime.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\GameInput.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Camera.cpp">
+      <Filter>Core\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\CameraController.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\CommandContext.h">
@@ -197,16 +206,10 @@
     <ClInclude Include="Core\GraphicsCore.h">
       <Filter>Core\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Core\SystemTime.h">
-      <Filter>Core\Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Core\Color.h">
       <Filter>Core\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Core\d3dx12.h">
-      <Filter>Core\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\EngineTuning.h">
       <Filter>Core\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Core\Math\BoundingPlane.h">
@@ -286,6 +289,21 @@
     </ClInclude>
     <ClInclude Include="Core\ReadbackBuffer.h">
       <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\EngineTuning.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\SystemTime.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\GameInput.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Camera.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\CameraController.h">
+      <Filter>Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

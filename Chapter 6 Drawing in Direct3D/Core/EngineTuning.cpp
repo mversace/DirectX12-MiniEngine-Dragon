@@ -14,7 +14,7 @@
 
 #include "pch.h"
 // #include "TextRenderer.h"
-// #include "GameInput.h"
+#include "GameInput.h"
 #include "Color.h"
 #include "GraphicsCore.h"
 #include "CommandContext.h"
@@ -514,62 +514,62 @@ void EngineTuning::Initialize( void )
 
 }
 
-// void HandleDigitalButtonPress( GameInput::DigitalInput button, float timeDelta, std::function<void ()> action )
-// {
-//     if (!GameInput::IsPressed(button))
-//         return;
-// 
-//     float durationHeld = GameInput::GetDurationPressed(button);
-// 
-//     // Tick on the first press
-//     if (durationHeld == 0.0f)
-//     {
-//         action();
-//         return;
-//     }
-// 
-//     // After ward, tick at fixed intervals
-//     float oldDuration = durationHeld - timeDelta;
-// 
-//     // Before 2 seconds, use slow scale (200ms/tick), afterward use fast scale (50ms/tick).
-//     float timeStretch = durationHeld < 2.0f ? 5.0f : 20.0f;
-// 
-//     if (Floor(durationHeld * timeStretch) > Floor(oldDuration * timeStretch))
-//         action();
-// }
+void HandleDigitalButtonPress( GameInput::DigitalInput button, float timeDelta, std::function<void ()> action )
+{
+    if (!GameInput::IsPressed(button))
+        return;
 
-// void EngineTuning::Update( float frameTime )
-// {
-//     if (GameInput::IsFirstPressed( GameInput::kBackButton )
-//         || GameInput::IsFirstPressed( GameInput::kKey_back ))
-//         sm_IsVisible = !sm_IsVisible;
-// 
-//     if (!sm_IsVisible)
-//         return;
-// 
-//     if (sm_SelectedVariable == nullptr || sm_SelectedVariable == &VariableGroup::sm_RootGroup)
-//         sm_SelectedVariable = VariableGroup::sm_RootGroup.FirstVariable();
-// 
-//     if (sm_SelectedVariable == nullptr)
-//         return;
-// 
-//     // Detect a DPad button press
-//     HandleDigitalButtonPress(GameInput::kDPadRight, frameTime, []{ sm_SelectedVariable->Increment(); } );
-//     HandleDigitalButtonPress(GameInput::kDPadLeft,    frameTime, []{ sm_SelectedVariable->Decrement(); } );
-//     HandleDigitalButtonPress(GameInput::kDPadDown,    frameTime, []{ sm_SelectedVariable = sm_SelectedVariable->NextVar(); } );
-//     HandleDigitalButtonPress(GameInput::kDPadUp,    frameTime, []{ sm_SelectedVariable = sm_SelectedVariable->PrevVar(); } );
-// 
-//     HandleDigitalButtonPress(GameInput::kKey_right, frameTime, []{ sm_SelectedVariable->Increment(); } );
-//     HandleDigitalButtonPress(GameInput::kKey_left,    frameTime, []{ sm_SelectedVariable->Decrement(); } );
-//     HandleDigitalButtonPress(GameInput::kKey_down,    frameTime, []{ sm_SelectedVariable = sm_SelectedVariable->NextVar(); } );
-//     HandleDigitalButtonPress(GameInput::kKey_up,    frameTime, []{ sm_SelectedVariable = sm_SelectedVariable->PrevVar(); } );
-// 
-//     if (GameInput::IsFirstPressed( GameInput::kAButton )
-//         || GameInput::IsFirstPressed( GameInput::kKey_return ))
-//     {
-//         sm_SelectedVariable->Bang();
-//     }
-// }
+    float durationHeld = GameInput::GetDurationPressed(button);
+
+    // Tick on the first press
+    if (durationHeld == 0.0f)
+    {
+        action();
+        return;
+    }
+
+    // After ward, tick at fixed intervals
+    float oldDuration = durationHeld - timeDelta;
+
+    // Before 2 seconds, use slow scale (200ms/tick), afterward use fast scale (50ms/tick).
+    float timeStretch = durationHeld < 2.0f ? 5.0f : 20.0f;
+
+    if (Floor(durationHeld * timeStretch) > Floor(oldDuration * timeStretch))
+        action();
+}
+
+void EngineTuning::Update( float frameTime )
+{
+    if (GameInput::IsFirstPressed( GameInput::kBackButton )
+        || GameInput::IsFirstPressed( GameInput::kKey_back ))
+        sm_IsVisible = !sm_IsVisible;
+
+    if (!sm_IsVisible)
+        return;
+
+    if (sm_SelectedVariable == nullptr || sm_SelectedVariable == &VariableGroup::sm_RootGroup)
+        sm_SelectedVariable = VariableGroup::sm_RootGroup.FirstVariable();
+
+    if (sm_SelectedVariable == nullptr)
+        return;
+
+    // Detect a DPad button press
+    HandleDigitalButtonPress(GameInput::kDPadRight, frameTime, []{ sm_SelectedVariable->Increment(); } );
+    HandleDigitalButtonPress(GameInput::kDPadLeft,    frameTime, []{ sm_SelectedVariable->Decrement(); } );
+    HandleDigitalButtonPress(GameInput::kDPadDown,    frameTime, []{ sm_SelectedVariable = sm_SelectedVariable->NextVar(); } );
+    HandleDigitalButtonPress(GameInput::kDPadUp,    frameTime, []{ sm_SelectedVariable = sm_SelectedVariable->PrevVar(); } );
+
+    HandleDigitalButtonPress(GameInput::kKey_right, frameTime, []{ sm_SelectedVariable->Increment(); } );
+    HandleDigitalButtonPress(GameInput::kKey_left,    frameTime, []{ sm_SelectedVariable->Decrement(); } );
+    HandleDigitalButtonPress(GameInput::kKey_down,    frameTime, []{ sm_SelectedVariable = sm_SelectedVariable->NextVar(); } );
+    HandleDigitalButtonPress(GameInput::kKey_up,    frameTime, []{ sm_SelectedVariable = sm_SelectedVariable->PrevVar(); } );
+
+    if (GameInput::IsFirstPressed( GameInput::kAButton )
+        || GameInput::IsFirstPressed( GameInput::kKey_return ))
+    {
+        sm_SelectedVariable->Bang();
+    }
+}
 
 void StartSave(void*)
 {
@@ -639,6 +639,10 @@ static CallbackTrigger Load("Load Settings", StartLoadFunc, nullptr);
 
 void EngineTuning::AddToVariableGraph( const string& path, EngineVar& var )
 {
+    VariableGroup* group = &VariableGroup::sm_RootGroup;
+    group->AddChild(path, var);
+
+#if 0
     vector<string> separatedPath;
     string leafName;
     size_t start = 0, end = 0;
@@ -679,6 +683,7 @@ void EngineTuning::AddToVariableGraph( const string& path, EngineVar& var )
     }
 
     group->AddChild(leafName, var);
+#endif
 }
 
 void EngineTuning::RegisterVariable( const std::string& path, EngineVar& var )

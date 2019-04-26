@@ -6,14 +6,15 @@
 
 #include <array>
 #include <DirectXColors.h>
+#include "GameInput.h"
 #include "CompiledShaders/defaultVS.h"
 #include "CompiledShaders/defaultPS.h"
 
 using namespace Graphics;
 void GameApp::Startup(void)
 {
-    m_RootSignature.Reset(0, 0);
-//    m_RootSignature[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 1);
+    m_RootSignature.Reset(1, 0);
+    m_RootSignature[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX);
     m_RootSignature.Finalize(L"box signature", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
     struct Vertex
@@ -94,7 +95,57 @@ void GameApp::Cleanup(void)
 
 void GameApp::Update(float deltaT)
 {
-	
+    if (GameInput::IsPressed(GameInput::kMouse0) || GameInput::IsPressed(GameInput::kMouse1)) {
+        // Make each pixel correspond to a quarter of a degree.
+        float dx = GameInput::GetAnalogInput(GameInput::kAnalogMouseX) - m_xLast;
+        float dy = GameInput::GetAnalogInput(GameInput::kAnalogMouseY) - m_yLast;
+
+        if (GameInput::IsPressed(GameInput::kMouse0))
+        {
+            // Update angles based on input to orbit camera around box.
+            m_xRotate += (dx - m_xDiff);
+            m_yRotate += (dy - m_yDiff);
+            m_yRotate = (std::max)(-XM_PIDIV2 + 0.1f, m_yRotate);
+            m_yRotate = (std::min)(XM_PIDIV2 - 0.1f, m_yRotate);
+        }
+        else
+        {
+            m_radius += dx - dy - (m_xDiff - m_yDiff);
+        }
+
+        m_xDiff = dx;
+        m_yDiff = dy;
+
+        m_xLast += GameInput::GetAnalogInput(GameInput::kAnalogMouseX);
+        m_yLast += GameInput::GetAnalogInput(GameInput::kAnalogMouseY);
+    }
+    else
+    {
+        m_xDiff = 0.0f;
+        m_yDiff = 0.0f;
+        m_xLast = 0.0f;
+        m_yLast = 0.0f;
+    }
+    
+
+    float x = m_radius * cosf(m_yRotate) * sinf(m_xRotate);
+    float y = m_radius * sinf(m_yRotate);
+    float z = m_radius * cosf(m_yRotate) * cosf(m_xRotate);
+
+    m_Camera.SetEyeAtUp({ x, y, z }, Vector3(kZero), Vector3(kYUnitVector));
+    m_Camera.Update();
+
+    m_ViewProjMatrix = m_Camera.GetViewProjMatrix();
+
+    m_MainViewport.Width = (float)g_SceneColorBuffer.GetWidth();
+    m_MainViewport.Height = (float)g_SceneColorBuffer.GetHeight();
+    m_MainViewport.MinDepth = 0.0f;
+    m_MainViewport.MaxDepth = 1.0f;
+
+    m_MainScissor.left = 0;
+    m_MainScissor.top = 0;
+    m_MainScissor.right = (LONG)g_SceneColorBuffer.GetWidth();
+    m_MainScissor.bottom = (LONG)g_SceneColorBuffer.GetHeight();
 }
 
 void GameApp::RenderScene(void)
@@ -103,7 +154,7 @@ void GameApp::RenderScene(void)
 
     gfxContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
 
-    gfxContext.SetViewportAndScissor(0, 0, g_SceneColorBuffer.GetWidth(), g_SceneColorBuffer.GetHeight());
+    gfxContext.SetViewportAndScissor(m_MainViewport, m_MainScissor);
 
     gfxContext.ClearColor(g_SceneColorBuffer);
 
@@ -124,8 +175,7 @@ void GameApp::RenderScene(void)
     // 设置索引视图
     gfxContext.SetIndexBuffer(m_IndexBuffer.IndexBufferView());
     // 设置常量缓冲区数据
-//     Math::Matrix4 WorldViewProj{ Math::kIdentity };
-//     gfxContext.SetDynamicConstantBufferView(0, sizeof(WorldViewProj), &WorldViewProj);
+    gfxContext.SetDynamicConstantBufferView(0, sizeof(m_ViewProjMatrix), &m_ViewProjMatrix);
     // 绘制
     gfxContext.DrawIndexedInstanced(36, 1, 0, 0, 0);
 

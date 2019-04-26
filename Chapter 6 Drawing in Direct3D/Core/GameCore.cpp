@@ -15,7 +15,7 @@
 #include "GameCore.h"
 #include "GraphicsCore.h"
 #include "SystemTime.h"
-// #include "GameInput.h"
+#include "GameInput.h"
 #include "BufferManager.h"
 #include "CommandContext.h"
 // #include "PostEffects.h"
@@ -38,8 +38,8 @@ namespace GameCore
 			return false;
 
         SystemTime::Initialize();
-//        GameInput::Initialize();
-//        EngineTuning::Initialize();
+        GameInput::Initialize();
+        EngineTuning::Initialize();
 
         game.Startup();
 
@@ -50,7 +50,7 @@ namespace GameCore
     {
         game.Cleanup();
 
-//        GameInput::Shutdown();
+        GameInput::Shutdown();
     }
 
 	void UpdateApplication(IGameApp& game)
@@ -59,8 +59,8 @@ namespace GameCore
 
         float DeltaTime = Graphics::GetFrameTime();
     
-//        GameInput::Update(DeltaTime);
-//        EngineTuning::Update(DeltaTime);
+       GameInput::Update(DeltaTime);
+       EngineTuning::Update(DeltaTime);
         
         game.Update(DeltaTime);
         game.RenderScene();

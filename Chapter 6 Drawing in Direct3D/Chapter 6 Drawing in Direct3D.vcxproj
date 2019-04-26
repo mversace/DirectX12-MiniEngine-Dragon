@@ -97,6 +97,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Core\BufferManager.cpp" />
+    <ClCompile Include="Core\Camera.cpp" />
+    <ClCompile Include="Core\CameraController.cpp" />
     <ClCompile Include="Core\Color.cpp" />
     <ClCompile Include="Core\ColorBuffer.cpp" />
     <ClCompile Include="Core\CommandAllocatorPool.cpp" />
@@ -108,6 +110,7 @@
     <ClCompile Include="Core\DynamicUploadBuffer.cpp" />
     <ClCompile Include="Core\EngineTuning.cpp" />
     <ClCompile Include="Core\GameCore.cpp" />
+    <ClCompile Include="Core\GameInput.cpp" />
     <ClCompile Include="Core\GpuBuffer.cpp" />
     <ClCompile Include="Core\GraphicsCommon.cpp" />
     <ClCompile Include="Core\GraphicsCore.cpp" />
@@ -127,6 +130,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\BufferManager.h" />
+    <ClInclude Include="Core\Camera.h" />
+    <ClInclude Include="Core\CameraController.h" />
     <ClInclude Include="Core\Color.h" />
     <ClInclude Include="Core\ColorBuffer.h" />
     <ClInclude Include="Core\CommandAllocatorPool.h" />
@@ -140,6 +145,7 @@
     <ClInclude Include="Core\EngineTuning.h" />
     <ClInclude Include="Core\EsramAllocator.h" />
     <ClInclude Include="Core\GameCore.h" />
+    <ClInclude Include="Core\GameInput.h" />
     <ClInclude Include="Core\GpuBuffer.h" />
     <ClInclude Include="Core\GpuResource.h" />
     <ClInclude Include="Core\GraphicsCommon.h" />

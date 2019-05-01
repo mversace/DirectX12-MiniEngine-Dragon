@@ -114,7 +114,7 @@ namespace Graphics
     const char* ResolutionLabels[] = {"1280x720", "1600x900", "1920x1080", "2560x1440", "3200x1800", "3840x2160" };
     EnumVar TargetResolution("Graphics/Display/Native Resolution", k1080p, kNumPredefinedResolutions, ResolutionLabels);
     // ´¹Ö±Í¬²½
-    BoolVar s_EnableVSync("Timing/VSync", true);
+    BoolVar s_EnableVSync("Timing/VSync", false);
 
     bool g_bTypedUAVLoadSupport_R11G11B10_FLOAT = false;
     bool g_bTypedUAVLoadSupport_R16G16B16A16_FLOAT = false;

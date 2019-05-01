@@ -171,6 +171,9 @@
     <ClCompile Include="Core\CameraController.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+    <ClCompile Include="GeometryGenerator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\CommandContext.h">
@@ -304,6 +307,9 @@
     </ClInclude>
     <ClInclude Include="Core\CameraController.h">
       <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="GeometryGenerator.h">
+      <Filter>源文件</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

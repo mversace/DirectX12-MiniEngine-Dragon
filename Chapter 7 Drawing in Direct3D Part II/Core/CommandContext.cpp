@@ -462,7 +462,7 @@ void GraphicsContext::SetScissor( const D3D12_RECT& rect )
     m_CommandList->RSSetScissorRects( 1, &rect );
 }
 
-inline void GraphicsContext::SetDynamicVB(UINT Slot, size_t NumVertices, size_t VertexStride, const void* VertexData)
+void GraphicsContext::SetDynamicVB(UINT Slot, size_t NumVertices, size_t VertexStride, const void* VertexData)
 {
     ASSERT(VertexData != nullptr && Math::IsAligned(VertexData, 16));
 

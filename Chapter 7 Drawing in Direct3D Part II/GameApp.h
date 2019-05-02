@@ -5,6 +5,7 @@
 #include "GpuBuffer.h"
 #include "PipelineState.h"
 #include "Camera.h"
+#include "Waves.h"
 
 class RootSignature;
 class StructuredBuffer;
@@ -33,16 +34,40 @@ private:
         int baseVertex;
     };
     void buildShapesData();
-    void buildShapesVI();
     void renderShapes(GraphicsContext& gfxContext);
 
+    void buildLandAndWaves();
+    float GetHillsHeight(float x, float z) const;
+    void renderLandAndWaves(GraphicsContext& gfxContext);
+    void UpdateWaves(float deltaT);
+
 private:
+    // 顶点结构体
+    struct Vertex
+    {
+        XMFLOAT3 Pos;
+        XMFLOAT4 Color;
+    };
+
     RootSignature m_RootSignature;
+    GraphicsPSO m_PSO;
+    GraphicsPSO m_PSOEx;
+
+    bool m_bRenderShapes = true;
+    bool m_bRenderFill = false;
+
+    // shapes
     StructuredBuffer m_VertexBuffer;
     ByteAddressBuffer m_IndexBuffer;
-    GraphicsPSO m_PSO;
     std::vector<renderItem> m_vecShapes;
+    // land and waves
+    StructuredBuffer m_VertexBufferLand;
+    ByteAddressBuffer m_IndexBufferLand;
+    Waves m_waves{ 128, 128, 1.0f, 0.03f, 4.0f, 0.2f };
+    ByteAddressBuffer m_IndexBufferWaves;
+    std::vector<Vertex> m_verticesWaves;
     
+    // 摄像机
     Camera m_Camera;
     Matrix4 m_ViewProjMatrix;
     D3D12_VIEWPORT m_MainViewport;

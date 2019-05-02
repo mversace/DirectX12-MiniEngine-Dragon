@@ -5,7 +5,6 @@
 #include "CommandContext.h"
 #include "GeometryGenerator.h"
 
-#include <array>
 #include <DirectXColors.h>
 #include "GameInput.h"
 #include "CompiledShaders/defaultVS.h"
@@ -16,16 +15,68 @@ namespace GameCore
     extern HWND g_hWnd;
 }
 
+static float RandF()
+{
+    return (float)(rand()) / (float)RAND_MAX;
+}
+
+// Returns random float in [a, b).
+static float RandF(float a, float b)
+{
+    return a + RandF() * (b - a);
+}
+
+static int Rand(int a, int b)
+{
+    return a + rand() % ((b - a) + 1);
+}
+
 using namespace Graphics;
 void GameApp::Startup(void)
 {
     buildShapesData();
+    buildLandAndWaves();
+
+    // 根签名
+    m_RootSignature.Reset(1, 0);
+    m_RootSignature[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX);
+    m_RootSignature.Finalize(L"box signature", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+    D3D12_INPUT_ELEMENT_DESC mInputLayout[] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+    };
+
+    DXGI_FORMAT ColorFormat = g_SceneColorBuffer.GetFormat();
+    DXGI_FORMAT DepthFormat = g_SceneDepthBuffer.GetFormat();
+
+    m_PSO.SetRootSignature(m_RootSignature);
+    auto raster = RasterizerDefault;
+    raster.FillMode = D3D12_FILL_MODE_WIREFRAME;
+    m_PSO.SetRasterizerState(raster);
+    m_PSO.SetBlendState(BlendDisable);
+    m_PSO.SetDepthStencilState(DepthStateReadWrite);
+    m_PSO.SetInputLayout(_countof(mInputLayout), mInputLayout);
+    m_PSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+    m_PSO.SetRenderTargetFormat(ColorFormat, DepthFormat);
+    m_PSO.SetVertexShader(g_pdefaultVS, sizeof(g_pdefaultVS));
+    m_PSO.SetPixelShader(g_pdefaultPS, sizeof(g_pdefaultPS));
+    m_PSO.Finalize();
+
+    m_PSOEx = m_PSO;
+    m_PSOEx.SetRasterizerState(RasterizerDefault);
+    m_PSOEx.Finalize();
 }
 
 void GameApp::Cleanup(void)
 {
     m_VertexBuffer.Destroy();
     m_IndexBuffer.Destroy();
+
+    m_VertexBufferLand.Destroy();
+    m_IndexBufferLand.Destroy();
+    m_IndexBufferWaves.Destroy();
 }
 
 void GameApp::Update(float deltaT)
@@ -42,6 +93,13 @@ void GameApp::Update(float deltaT)
         L"   mspf: " + mspfStr;
 
     SetWindowText(GameCore::g_hWnd, windowText.c_str());
+
+    if (GameInput::IsFirstPressed(GameInput::kKey_f1))
+        m_bRenderShapes = !m_bRenderShapes;
+    if (GameInput::IsFirstPressed(GameInput::kKey_f2))
+    {
+        m_bRenderFill = !m_bRenderFill;
+    }
 
     if (GameInput::IsPressed(GameInput::kMouse0) || GameInput::IsPressed(GameInput::kMouse1)) {
         // Make each pixel correspond to a quarter of a degree.
@@ -74,11 +132,19 @@ void GameApp::Update(float deltaT)
         m_xLast = 0.0f;
         m_yLast = 0.0f;
     }
-    
 
-    float x = m_radius * cosf(m_yRotate) * sinf(m_xRotate);
-    float y = m_radius * sinf(m_yRotate);
-    float z = m_radius * cosf(m_yRotate) * cosf(m_xRotate);
+    // 滚轮消息
+    if (float fl = GameInput::GetAnalogInput(GameInput::kAnalogMouseScroll))
+    {
+        if (fl > 0)
+            m_radius -= 5;
+        else
+            m_radius += 5;
+    }
+
+    float x = m_radius* cosf(m_yRotate)* sinf(m_xRotate);
+    float y = m_radius* sinf(m_yRotate);
+    float z = m_radius* cosf(m_yRotate)* cosf(m_xRotate);
 
     m_Camera.SetEyeAtUp({ x, y, z }, Vector3(kZero), Vector3(kYUnitVector));
     m_Camera.Update();
@@ -94,6 +160,9 @@ void GameApp::Update(float deltaT)
     m_MainScissor.top = 0;
     m_MainScissor.right = (LONG)g_SceneColorBuffer.GetWidth();
     m_MainScissor.bottom = (LONG)g_SceneColorBuffer.GetHeight();
+
+    if (!m_bRenderShapes)
+        UpdateWaves(deltaT);
 }
 
 void GameApp::RenderScene(void)
@@ -110,9 +179,23 @@ void GameApp::RenderScene(void)
     gfxContext.ClearDepth(g_SceneDepthBuffer);
 
     gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ, true);
-    gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV(), g_SceneDepthBuffer.GetDSV_DepthReadOnly());
+    gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV(), g_SceneDepthBuffer.GetDSV());
 
-    renderShapes(gfxContext);
+    // 设置渲染流水线
+    if (m_bRenderFill)
+        gfxContext.SetPipelineState(m_PSOEx);
+    else
+        gfxContext.SetPipelineState(m_PSO);
+
+    // 设置根签名
+    gfxContext.SetRootSignature(m_RootSignature);
+    // 设置顶点拓扑结构
+    gfxContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    if (m_bRenderShapes)
+        renderShapes(gfxContext);
+    else
+        renderLandAndWaves(gfxContext);
 
     gfxContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_PRESENT);
 
@@ -121,45 +204,6 @@ void GameApp::RenderScene(void)
 
 void GameApp::buildShapesData()
 {
-    buildShapesVI();
-
-    // 根签名
-    m_RootSignature.Reset(1, 0);
-    m_RootSignature[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX);
-    m_RootSignature.Finalize(L"box signature", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
-    
-    D3D12_INPUT_ELEMENT_DESC mInputLayout[] =
-    {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-    };
-
-    DXGI_FORMAT ColorFormat = g_SceneColorBuffer.GetFormat();
-    DXGI_FORMAT DepthFormat = g_SceneDepthBuffer.GetFormat();
-
-    m_PSO.SetRootSignature(m_RootSignature);
-    auto raster = RasterizerDefault;
-    raster.FillMode = D3D12_FILL_MODE_WIREFRAME;
-    m_PSO.SetRasterizerState(raster);
-    m_PSO.SetBlendState(BlendDisable);
-    m_PSO.SetDepthStencilState(DepthStateDisabled);
-    m_PSO.SetInputLayout(_countof(mInputLayout), mInputLayout);
-    m_PSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-    m_PSO.SetRenderTargetFormat(ColorFormat, DepthFormat);
-    m_PSO.SetVertexShader(g_pdefaultVS, sizeof(g_pdefaultVS));
-    m_PSO.SetPixelShader(g_pdefaultPS, sizeof(g_pdefaultPS));
-    m_PSO.Finalize();
-}
-
-void GameApp::buildShapesVI()
-{
-    // 顶点结构体
-    struct Vertex
-    {
-        XMFLOAT3 Pos;
-        XMFLOAT4 Color;
-    };
-
     // 创建形状顶点
     GeometryGenerator geoGen;
     GeometryGenerator::MeshData box = geoGen.CreateBox(1.5f, 0.5f, 1.5f, 3);
@@ -179,7 +223,7 @@ void GameApp::buildShapesVI()
     for (size_t i = 0; i < box.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = box.Vertices[i].Position;
-        vertices[k].Color = XMFLOAT4(DirectX::Colors::DarkGreen);
+        vertices[k].Color = XMFLOAT4(DirectX::Colors::LemonChiffon);
     }
 
     for (size_t i = 0; i < grid.Vertices.size(); ++i, ++k)
@@ -268,12 +312,6 @@ void GameApp::buildShapesVI()
 
 void GameApp::renderShapes(GraphicsContext& gfxContext)
 {
-    // 设置渲染流水线
-    gfxContext.SetPipelineState(m_PSO);
-    // 设置根签名
-    gfxContext.SetRootSignature(m_RootSignature);
-    // 设置顶点拓扑结构
-    gfxContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     // 设置顶点视图
     gfxContext.SetVertexBuffer(0, m_VertexBuffer.VertexBufferView());
     // 设置索引视图
@@ -286,5 +324,148 @@ void GameApp::renderShapes(GraphicsContext& gfxContext)
         gfxContext.SetDynamicConstantBufferView(0, sizeof(a), &a);
         // 绘制
         gfxContext.DrawIndexedInstanced(item.indexCount, 1, item.startIndex, item.baseVertex, 0);
+    }
+}
+
+void GameApp::buildLandAndWaves()
+{
+    GeometryGenerator geoGen;
+    GeometryGenerator::MeshData grid = geoGen.CreateGrid(160.0f, 160.0f, 50, 50);
+
+    //
+    // Extract the vertex elements we are interested and apply the height function to
+    // each vertex.  In addition, color the vertices based on their height so we have
+    // sandy looking beaches, grassy low hills, and snow mountain peaks.
+    //
+
+    std::vector<Vertex> vertices(grid.Vertices.size());
+    for (size_t i = 0; i < grid.Vertices.size(); ++i)
+    {
+        auto& p = grid.Vertices[i].Position;
+        vertices[i].Pos = p;
+        vertices[i].Pos.y = GetHillsHeight(p.x, p.z);
+
+        // Color the vertex based on its height.
+        if (vertices[i].Pos.y < -10.0f)
+        {
+            // Sandy beach color.
+            vertices[i].Color = XMFLOAT4(1.0f, 0.96f, 0.62f, 1.0f);
+        }
+        else if (vertices[i].Pos.y < 5.0f)
+        {
+            // Light yellow-green.
+            vertices[i].Color = XMFLOAT4(0.48f, 0.77f, 0.46f, 1.0f);
+        }
+        else if (vertices[i].Pos.y < 12.0f)
+        {
+            // Dark yellow-green.
+            vertices[i].Color = XMFLOAT4(0.1f, 0.48f, 0.19f, 1.0f);
+        }
+        else if (vertices[i].Pos.y < 20.0f)
+        {
+            // Dark brown.
+            vertices[i].Color = XMFLOAT4(0.45f, 0.39f, 0.34f, 1.0f);
+        }
+        else
+        {
+            // White snow.
+            vertices[i].Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+    }
+
+    std::vector<std::uint16_t> indices = grid.GetIndices16();
+
+    m_VertexBufferLand.Create(L"vertex buff", (UINT)vertices.size(), sizeof(Vertex), vertices.data());
+    m_IndexBufferLand.Create(L"index buff", (UINT)indices.size(), sizeof(std::uint16_t), indices.data());
+
+
+    // waves
+    std::vector<std::uint16_t> waveIndices(3 * m_waves.TriangleCount()); // 3 indices per face
+
+    // Iterate over each quad.
+    int m = m_waves.RowCount();
+    int n = m_waves.ColumnCount();
+    int k = 0;
+    for (int i = 0; i < m - 1; ++i)
+    {
+        for (int j = 0; j < n - 1; ++j)
+        {
+            waveIndices[k] = i * n + j;
+            waveIndices[k + 1] = i * n + j + 1;
+            waveIndices[k + 2] = (i + 1) * n + j;
+
+            waveIndices[k + 3] = (i + 1) * n + j;
+            waveIndices[k + 4] = i * n + j + 1;
+            waveIndices[k + 5] = (i + 1) * n + j + 1;
+
+            k += 6; // next quad
+        }
+    }
+    m_IndexBufferWaves.Create(L"wave index buff", (UINT)waveIndices.size(), sizeof(std::uint16_t), waveIndices.data());
+
+}
+
+float GameApp::GetHillsHeight(float x, float z) const
+{
+    return 0.3f* (z * sinf(0.1f * x) + x * cosf(0.1f * z));
+}
+
+void GameApp::renderLandAndWaves(GraphicsContext& gfxContext)
+{
+    // 设置常量缓冲区数据
+    gfxContext.SetDynamicConstantBufferView(0, sizeof(m_ViewProjMatrix), &m_ViewProjMatrix);
+
+    // land
+    // 设置顶点视图
+    gfxContext.SetVertexBuffer(0, m_VertexBufferLand.VertexBufferView());
+    // 设置索引视图
+    gfxContext.SetIndexBuffer(m_IndexBufferLand.IndexBufferView());
+
+    // 绘制
+    gfxContext.DrawIndexedInstanced(m_IndexBufferLand.GetElementCount(), 1, 0, 0, 0);
+
+    // waves
+    gfxContext.SetIndexBuffer(m_IndexBufferWaves.IndexBufferView());
+
+    gfxContext.SetDynamicVB(0, m_verticesWaves.size(), sizeof(Vertex), m_verticesWaves.data());
+
+    // 绘制
+    gfxContext.DrawIndexedInstanced(m_IndexBufferWaves.GetElementCount(), 1, 0, 0, 0);
+}
+
+void GameApp::UpdateWaves(float deltaT)
+{
+    // Every quarter second, generate a random wave.
+    static float t_base = 0.0f;
+    if (t_base >= 0.25f)
+    {
+        t_base -= 0.25f;
+
+        
+        int i = Rand(4, m_waves.RowCount() - 5);
+        int j = Rand(4, m_waves.ColumnCount() - 5);
+
+        float r = RandF(0.2f, 0.5f);
+
+        m_waves.Disturb(i, j, r);
+    }
+    else
+    {
+        t_base += deltaT;
+    }
+
+    // Update the wave simulation.
+    m_waves.Update(deltaT);
+
+    // Update the wave vertex buffer with the new solution.
+    m_verticesWaves.clear();
+    for (int i = 0; i < m_waves.VertexCount(); ++i)
+    {
+        Vertex v;
+
+        v.Pos = m_waves.Position(i);
+        v.Color = XMFLOAT4(DirectX::Colors::Blue);
+
+        m_verticesWaves.push_back(v);
     }
 }

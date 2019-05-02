@@ -128,6 +128,7 @@
     <ClCompile Include="GameApp.cpp" />
     <ClCompile Include="GeometryGenerator.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Waves.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\BufferManager.h" />
@@ -175,6 +176,7 @@
     <ClInclude Include="Core\VectorMath.h" />
     <ClInclude Include="GameApp.h" />
     <ClInclude Include="GeometryGenerator.h" />
+    <ClInclude Include="Waves.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Core\readme\readme_command.txt" />

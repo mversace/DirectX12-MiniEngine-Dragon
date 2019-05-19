@@ -38,8 +38,9 @@ void GameApp::Startup(void)
     buildLandAndWaves();
 
     // 根签名
-    m_RootSignature.Reset(1, 0);
+    m_RootSignature.Reset(2, 0);
     m_RootSignature[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX);
+    m_RootSignature[1].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_ALL);
     m_RootSignature.Finalize(L"box signature", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
     D3D12_INPUT_ELEMENT_DESC mInputLayout[] =
@@ -192,6 +193,19 @@ void GameApp::RenderScene(void)
     // 设置顶点拓扑结构
     gfxContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+    // 设置VS、PS通用的常量缓冲区
+    __declspec(align(16)) struct
+    {
+        Matrix4 viewProj;  // 从世界坐标转为投影坐标的矩阵
+    }passConstants;
+
+    // https://www.cnblogs.com/X-Jun/p/9808727.html
+    // C++代码端进行转置，HLSL中使用matrix(列矩阵)
+    // mul函数让向量放在左边(行向量)，实际运算是(行向量 X 行矩阵) 然后行矩阵为了使用dp4运算发生了转置成了列矩阵
+    passConstants.viewProj = Transpose(m_ViewProjMatrix);
+    gfxContext.SetDynamicConstantBufferView(1, sizeof(passConstants), &passConstants);
+
+    // 开始绘制
     if (m_bRenderShapes)
         renderShapes(gfxContext);
     else
@@ -269,14 +283,14 @@ void GameApp::buildShapesData()
 
     renderItem item;
     // box
-    item.modelToWorld = Matrix4(AffineTransform(Matrix3::MakeScale(2.0f, 2.0f, 2.0f), Vector3(0.0f, 0.5f, 0.0f)));
+    item.modelToWorld = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(2.0f, 2.0f, 2.0f), Vector3(0.0f, 0.5f, 0.0f))));
     item.indexCount = (UINT)box.Indices32.size();
     item.startIndex = boxIndexOffset;
     item.baseVertex = boxVertexOffset;
     m_vecShapes.push_back(item);
 
     // grid
-    item.modelToWorld = Matrix4(kIdentity);
+    item.modelToWorld = Transpose(Matrix4(kIdentity));
     item.indexCount = (UINT)grid.Indices32.size();
     item.startIndex = gridIndexOffset;
     item.baseVertex = gridVertexOffset;
@@ -284,11 +298,11 @@ void GameApp::buildShapesData()
 
     for (int i = 0; i < 5; ++i)
     {
-        Matrix4 leftCylWorld = Matrix4(AffineTransform(Vector3(-5.0f, 1.5f, -10.0f + i * 5.0f)));
-        Matrix4 rightCylWorld = Matrix4(AffineTransform(Vector3(+5.0f, 1.5f, -10.0f + i * 5.0f)));
+        Matrix4 leftCylWorld = Transpose(Matrix4(AffineTransform(Vector3(-5.0f, 1.5f, -10.0f + i * 5.0f))));
+        Matrix4 rightCylWorld = Transpose(Matrix4(AffineTransform(Vector3(+5.0f, 1.5f, -10.0f + i * 5.0f))));
 
-        Matrix4 leftSphereWorld = Matrix4(AffineTransform(Vector3(-5.0f, 3.5f, -10.0f + i * 5.0f)));
-        Matrix4 rightSphereWorld = Matrix4(AffineTransform(Vector3(+5.0f, 3.5f, -10.0f + i * 5.0f)));
+        Matrix4 leftSphereWorld = Transpose(Matrix4(AffineTransform(Vector3(-5.0f, 3.5f, -10.0f + i * 5.0f))));
+        Matrix4 rightSphereWorld = Transpose(Matrix4(AffineTransform(Vector3(+5.0f, 3.5f, -10.0f + i * 5.0f))));
 
         // cylinder
         item.indexCount = (UINT)cylinder.Indices32.size();
@@ -319,9 +333,8 @@ void GameApp::renderShapes(GraphicsContext& gfxContext)
 
     for (auto& item : m_vecShapes)
     {
-        Matrix4 a = m_ViewProjMatrix * item.modelToWorld;
         // 设置常量缓冲区数据
-        gfxContext.SetDynamicConstantBufferView(0, sizeof(a), &a);
+        gfxContext.SetDynamicConstantBufferView(0, sizeof(item.modelToWorld), &item.modelToWorld);
         // 绘制
         gfxContext.DrawIndexedInstanced(item.indexCount, 1, item.startIndex, item.baseVertex, 0);
     }
@@ -413,7 +426,7 @@ float GameApp::GetHillsHeight(float x, float z) const
 void GameApp::renderLandAndWaves(GraphicsContext& gfxContext)
 {
     // 设置常量缓冲区数据
-    gfxContext.SetDynamicConstantBufferView(0, sizeof(m_ViewProjMatrix), &m_ViewProjMatrix);
+    gfxContext.SetDynamicConstantBufferView(0, sizeof(m_waveWorld), &m_waveWorld);
 
     // land
     // 设置顶点视图

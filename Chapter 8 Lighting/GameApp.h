@@ -66,6 +66,7 @@ private:
     Waves m_waves{ 128, 128, 1.0f, 0.03f, 4.0f, 0.2f };
     ByteAddressBuffer m_IndexBufferWaves;
     std::vector<Vertex> m_verticesWaves;
+    Matrix4 m_waveWorld = Transpose(Matrix4(kIdentity));
     
     // ÉãÏñ»ú
     Camera m_Camera;

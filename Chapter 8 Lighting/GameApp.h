@@ -6,6 +6,7 @@
 #include "PipelineState.h"
 #include "Camera.h"
 #include "Waves.h"
+#include "d3dUtil.h"
 
 class RootSignature;
 class StructuredBuffer;
@@ -32,12 +33,17 @@ private:
         int indexCount;
         int startIndex;
         int baseVertex;
+        XMFLOAT4 diffuseAlbedo;
+        XMFLOAT3 fresnelR0;
+        float roughness;
     };
     void buildShapesData();
+    void buildSkull();
     void renderShapes(GraphicsContext& gfxContext);
 
     void buildLandAndWaves();
     float GetHillsHeight(float x, float z) const;
+    XMFLOAT3 GetHillsNormal(float x, float z) const;
     void renderLandAndWaves(GraphicsContext& gfxContext);
     void UpdateWaves(float deltaT);
 
@@ -46,7 +52,7 @@ private:
     struct Vertex
     {
         XMFLOAT3 Pos;
-        XMFLOAT4 Color;
+        XMFLOAT3 Normal;
     };
 
     RootSignature m_RootSignature;
@@ -60,6 +66,11 @@ private:
     StructuredBuffer m_VertexBuffer;
     ByteAddressBuffer m_IndexBuffer;
     std::vector<renderItem> m_vecShapes;
+    // skull
+    StructuredBuffer m_VertexBufferSkull;
+    ByteAddressBuffer m_IndexBufferSkull;
+    renderItem m_skull;
+
     // land and waves
     StructuredBuffer m_VertexBufferLand;
     ByteAddressBuffer m_IndexBufferLand;

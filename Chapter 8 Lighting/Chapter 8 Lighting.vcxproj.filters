@@ -317,6 +317,9 @@
     <ClInclude Include="Waves.h">
       <Filter>源文件</Filter>
     </ClInclude>
+    <ClInclude Include="d3dUtil.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Core\readme\readme_command.txt">
@@ -410,6 +413,9 @@
     </None>
     <None Include="Core\Shaders\TextRS.hlsli">
       <Filter>Shaders\Text</Filter>
+    </None>
+    <None Include="Core\Shaders\LightingUtil.hlsl">
+      <Filter>Shaders\default</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

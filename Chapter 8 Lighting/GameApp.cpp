@@ -6,6 +6,7 @@
 #include "GeometryGenerator.h"
 
 #include <DirectXColors.h>
+#include <fstream>
 #include "GameInput.h"
 #include "CompiledShaders/defaultVS.h"
 #include "CompiledShaders/defaultPS.h"
@@ -35,18 +36,20 @@ using namespace Graphics;
 void GameApp::Startup(void)
 {
     buildShapesData();
+    buildSkull();
     buildLandAndWaves();
 
     // 根签名
-    m_RootSignature.Reset(2, 0);
+    m_RootSignature.Reset(3, 0);
     m_RootSignature[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX);
     m_RootSignature[1].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_ALL);
+    m_RootSignature[2].InitAsConstantBuffer(2, D3D12_SHADER_VISIBILITY_PIXEL);
     m_RootSignature.Finalize(L"box signature", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
     D3D12_INPUT_ELEMENT_DESC mInputLayout[] =
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+        { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
     };
 
     DXGI_FORMAT ColorFormat = g_SceneColorBuffer.GetFormat();
@@ -74,6 +77,8 @@ void GameApp::Cleanup(void)
 {
     m_VertexBuffer.Destroy();
     m_IndexBuffer.Destroy();
+    m_VertexBufferSkull.Destroy();
+    m_IndexBufferSkull.Destroy();
 
     m_VertexBufferLand.Destroy();
     m_IndexBufferLand.Destroy();
@@ -179,7 +184,6 @@ void GameApp::RenderScene(void)
     gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
     gfxContext.ClearDepth(g_SceneDepthBuffer);
 
-    gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ, true);
     gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV(), g_SceneDepthBuffer.GetDSV());
 
     // 设置渲染流水线
@@ -192,18 +196,6 @@ void GameApp::RenderScene(void)
     gfxContext.SetRootSignature(m_RootSignature);
     // 设置顶点拓扑结构
     gfxContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-    // 设置VS、PS通用的常量缓冲区
-    __declspec(align(16)) struct
-    {
-        Matrix4 viewProj;  // 从世界坐标转为投影坐标的矩阵
-    }passConstants;
-
-    // https://www.cnblogs.com/X-Jun/p/9808727.html
-    // C++代码端进行转置，HLSL中使用matrix(列矩阵)
-    // mul函数让向量放在左边(行向量)，实际运算是(行向量 X 行矩阵) 然后行矩阵为了使用dp4运算发生了转置成了列矩阵
-    passConstants.viewProj = Transpose(m_ViewProjMatrix);
-    gfxContext.SetDynamicConstantBufferView(1, sizeof(passConstants), &passConstants);
 
     // 开始绘制
     if (m_bRenderShapes)
@@ -237,25 +229,25 @@ void GameApp::buildShapesData()
     for (size_t i = 0; i < box.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = box.Vertices[i].Position;
-        vertices[k].Color = XMFLOAT4(DirectX::Colors::LemonChiffon);
+        vertices[k].Normal = box.Vertices[i].Normal;
     }
 
     for (size_t i = 0; i < grid.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = grid.Vertices[i].Position;
-        vertices[k].Color = XMFLOAT4(DirectX::Colors::ForestGreen);
+        vertices[k].Normal = grid.Vertices[i].Normal;
     }
 
     for (size_t i = 0; i < sphere.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = sphere.Vertices[i].Position;
-        vertices[k].Color = XMFLOAT4(DirectX::Colors::Crimson);
+        vertices[k].Normal = sphere.Vertices[i].Normal;
     }
 
     for (size_t i = 0; i < cylinder.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = cylinder.Vertices[i].Position;
-        vertices[k].Color = XMFLOAT4(DirectX::Colors::SteelBlue);
+        vertices[k].Normal = cylinder.Vertices[i].Normal;
     }
 
     std::vector<std::uint16_t> indices;
@@ -287,6 +279,9 @@ void GameApp::buildShapesData()
     item.indexCount = (UINT)box.Indices32.size();
     item.startIndex = boxIndexOffset;
     item.baseVertex = boxVertexOffset;
+    item.diffuseAlbedo = XMFLOAT4(Colors::LightSteelBlue);
+    item.fresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
+    item.roughness = 0.3f;
     m_vecShapes.push_back(item);
 
     // grid
@@ -294,6 +289,9 @@ void GameApp::buildShapesData()
     item.indexCount = (UINT)grid.Indices32.size();
     item.startIndex = gridIndexOffset;
     item.baseVertex = gridVertexOffset;
+    item.diffuseAlbedo = XMFLOAT4(Colors::LightGray);
+    item.fresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
+    item.roughness = 0.2f;
     m_vecShapes.push_back(item);
 
     for (int i = 0; i < 5; ++i)
@@ -309,6 +307,9 @@ void GameApp::buildShapesData()
         item.startIndex = cylinderIndexOffset;
         item.baseVertex = cylinderVertexOffset;
         item.modelToWorld = leftCylWorld;
+        item.diffuseAlbedo = XMFLOAT4(Colors::ForestGreen);
+        item.fresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
+        item.roughness = 0.1f;
         m_vecShapes.push_back(item);
         item.modelToWorld = rightCylWorld;
         m_vecShapes.push_back(item);
@@ -318,14 +319,83 @@ void GameApp::buildShapesData()
         item.startIndex = sphereIndexOffset;
         item.baseVertex = sphereVertexOffset;
         item.modelToWorld = leftSphereWorld;
+        item.diffuseAlbedo = XMFLOAT4(Colors::LightSteelBlue);
+        item.fresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
+        item.roughness = 0.3f;
         m_vecShapes.push_back(item);
         item.modelToWorld = rightSphereWorld;
         m_vecShapes.push_back(item);
     }
 }
 
+void GameApp::buildSkull()
+{
+    // create skull
+    std::ifstream fin("Models/skull.txt");
+
+    if (!fin)
+    {
+        MessageBox(0, L"Models/skull.txt not found.", 0, 0);
+        return;
+    }
+
+    UINT vcount = 0;
+    UINT tcount = 0;
+    std::string ignore;
+
+    fin >> ignore >> vcount;
+    fin >> ignore >> tcount;
+    fin >> ignore >> ignore >> ignore >> ignore;
+
+    std::vector<Vertex> vertices(vcount);
+    for (UINT i = 0; i < vcount; ++i)
+    {
+        fin >> vertices[i].Pos.x >> vertices[i].Pos.y >> vertices[i].Pos.z;
+        fin >> vertices[i].Normal.x >> vertices[i].Normal.y >> vertices[i].Normal.z;
+    }
+
+    fin >> ignore;
+    fin >> ignore;
+    fin >> ignore;
+
+    std::vector<std::int32_t> indices(3 * tcount);
+    for (UINT i = 0; i < tcount; ++i)
+    {
+        fin >> indices[i * 3 + 0] >> indices[i * 3 + 1] >> indices[i * 3 + 2];
+    }
+
+    fin.close();
+
+    // GPUBuff类，自动把对象通过上传缓冲区传到了对应的默认堆中
+    m_VertexBufferSkull.Create(L"vertex buff", (UINT)vertices.size(), sizeof(Vertex), vertices.data());
+    m_IndexBufferSkull.Create(L"index buff", (UINT)indices.size(), sizeof(std::int32_t), indices.data());
+
+    m_skull.modelToWorld = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(0.5f, 0.5f, 0.5f), Vector3(0.0f, 1.0f, 0.0f))));
+    m_skull.indexCount = (UINT)indices.size();
+    m_skull.startIndex = 0;
+    m_skull.baseVertex = 0;
+    m_skull.diffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+    m_skull.fresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
+    m_skull.roughness = 0.3f;
+}
+
 void GameApp::renderShapes(GraphicsContext& gfxContext)
 {
+    PassConstants psc;
+    // https://www.cnblogs.com/X-Jun/p/9808727.html
+    // C++代码端进行转置，HLSL中使用matrix(列矩阵)
+    // mul函数让向量放在左边(行向量)，实际运算是(行向量 X 行矩阵) 然后行矩阵为了使用dp4运算发生了转置成了列矩阵
+    psc.viewProj = Transpose(m_ViewProjMatrix);
+    psc.eyePosW = m_Camera.GetPosition();
+    psc.ambientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+    psc.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
+    psc.Lights[0].Strength = { 0.6f, 0.6f, 0.6f };
+    psc.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
+    psc.Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
+    psc.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
+    psc.Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
+    gfxContext.SetDynamicConstantBufferView(1, sizeof(psc), &psc);
+
     // 设置顶点视图
     gfxContext.SetVertexBuffer(0, m_VertexBuffer.VertexBufferView());
     // 设置索引视图
@@ -334,10 +404,36 @@ void GameApp::renderShapes(GraphicsContext& gfxContext)
     for (auto& item : m_vecShapes)
     {
         // 设置常量缓冲区数据
-        gfxContext.SetDynamicConstantBufferView(0, sizeof(item.modelToWorld), &item.modelToWorld);
+        ObjectConstants obc;
+        obc.World = item.modelToWorld;
+        gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
+
+        MaterialConstants mc;
+        mc.DiffuseAlbedo = { item.diffuseAlbedo.x, item.diffuseAlbedo.y, item.diffuseAlbedo.z, item.diffuseAlbedo.w };
+        mc.FresnelR0 = item.fresnelR0;
+        mc.Roughness = item.roughness;
+        gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
+
         // 绘制
         gfxContext.DrawIndexedInstanced(item.indexCount, 1, item.startIndex, item.baseVertex, 0);
     }
+
+    // 绘制skull
+    gfxContext.SetVertexBuffer(0, m_VertexBufferSkull.VertexBufferView());
+    gfxContext.SetIndexBuffer(m_IndexBufferSkull.IndexBufferView());
+
+    ObjectConstants obc;
+    obc.World = m_skull.modelToWorld;
+    gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
+
+    MaterialConstants mc;
+    mc.DiffuseAlbedo = { m_skull.diffuseAlbedo.x, m_skull.diffuseAlbedo.y, m_skull.diffuseAlbedo.z, m_skull.diffuseAlbedo.w };
+    mc.FresnelR0 = m_skull.fresnelR0;
+    mc.Roughness = m_skull.roughness;
+    gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
+
+    // 绘制
+    gfxContext.DrawIndexedInstanced(m_skull.indexCount, 1, m_skull.startIndex, m_skull.baseVertex, 0);
 }
 
 void GameApp::buildLandAndWaves()
@@ -357,33 +453,7 @@ void GameApp::buildLandAndWaves()
         auto& p = grid.Vertices[i].Position;
         vertices[i].Pos = p;
         vertices[i].Pos.y = GetHillsHeight(p.x, p.z);
-
-        // Color the vertex based on its height.
-        if (vertices[i].Pos.y < -10.0f)
-        {
-            // Sandy beach color.
-            vertices[i].Color = XMFLOAT4(1.0f, 0.96f, 0.62f, 1.0f);
-        }
-        else if (vertices[i].Pos.y < 5.0f)
-        {
-            // Light yellow-green.
-            vertices[i].Color = XMFLOAT4(0.48f, 0.77f, 0.46f, 1.0f);
-        }
-        else if (vertices[i].Pos.y < 12.0f)
-        {
-            // Dark yellow-green.
-            vertices[i].Color = XMFLOAT4(0.1f, 0.48f, 0.19f, 1.0f);
-        }
-        else if (vertices[i].Pos.y < 20.0f)
-        {
-            // Dark brown.
-            vertices[i].Color = XMFLOAT4(0.45f, 0.39f, 0.34f, 1.0f);
-        }
-        else
-        {
-            // White snow.
-            vertices[i].Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-        }
+        vertices[i].Normal = GetHillsNormal(p.x, p.z);
     }
 
     std::vector<std::uint16_t> indices = grid.GetIndices16();
@@ -423,11 +493,22 @@ float GameApp::GetHillsHeight(float x, float z) const
     return 0.3f* (z * sinf(0.1f * x) + x * cosf(0.1f * z));
 }
 
+XMFLOAT3 GameApp::GetHillsNormal(float x, float z)const
+{
+    // n = (-df/dx, 1, -df/dz)
+    XMFLOAT3 n(
+        -0.03f * z * cosf(0.1f * x) - 0.3f * cosf(0.1f * z),
+        1.0f,
+        -0.3f * sinf(0.1f * x) + 0.03f * x * sinf(0.1f * z));
+
+    XMVECTOR unitNormal = XMVector3Normalize(XMLoadFloat3(&n));
+    XMStoreFloat3(&n, unitNormal);
+
+    return n;
+}
+
 void GameApp::renderLandAndWaves(GraphicsContext& gfxContext)
 {
-    // 设置常量缓冲区数据
-    gfxContext.SetDynamicConstantBufferView(0, sizeof(m_waveWorld), &m_waveWorld);
-
     // land
     // 设置顶点视图
     gfxContext.SetVertexBuffer(0, m_VertexBufferLand.VertexBufferView());
@@ -477,7 +558,7 @@ void GameApp::UpdateWaves(float deltaT)
         Vertex v;
 
         v.Pos = m_waves.Position(i);
-        v.Color = XMFLOAT4(DirectX::Colors::Blue);
+        v.Normal = m_waves.Normal(i);
 
         m_verticesWaves.push_back(v);
     }

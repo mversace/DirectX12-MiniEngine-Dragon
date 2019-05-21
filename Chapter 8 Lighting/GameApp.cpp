@@ -169,6 +169,23 @@ void GameApp::Update(float deltaT)
 
     if (!m_bRenderShapes)
         UpdateWaves(deltaT);
+
+    // land and wave light
+    const float dt = deltaT;
+
+    if (GameInput::IsPressed(GameInput::kKey_left))
+        mSunTheta -= 1.0f * dt;
+
+    if (GameInput::IsPressed(GameInput::kKey_right))
+        mSunTheta += 1.0f * dt;
+
+    if(GameInput::IsPressed(GameInput::kKey_up))
+        mSunPhi -= 1.0f * dt;
+
+    if (GameInput::IsPressed(GameInput::kKey_down))
+        mSunPhi += 1.0f * dt;
+
+    mSunPhi = Clamp(mSunPhi, 0.1f, XM_PIDIV2);
 }
 
 void GameApp::RenderScene(void)
@@ -509,11 +526,37 @@ XMFLOAT3 GameApp::GetHillsNormal(float x, float z)const
 
 void GameApp::renderLandAndWaves(GraphicsContext& gfxContext)
 {
+    gfxContext.SetDynamicConstantBufferView(0, sizeof(m_waveWorld), &m_waveWorld);
+
+    PassConstants psc;
+    // https://www.cnblogs.com/X-Jun/p/9808727.html
+    // C++代码端进行转置，HLSL中使用matrix(列矩阵)
+    // mul函数让向量放在左边(行向量)，实际运算是(行向量 X 行矩阵) 然后行矩阵为了使用dp4运算发生了转置成了列矩阵
+    psc.viewProj = Transpose(m_ViewProjMatrix);
+    psc.eyePosW = m_Camera.GetPosition();
+    psc.ambientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+    
+    XMVECTOR lightDir = -DirectX::XMVectorSet(
+        1.0f * sinf(mSunTheta) * cosf(mSunTheta),
+        1.0f * cosf(mSunTheta),
+        1.0f * sinf(mSunTheta) * sinf(mSunTheta),
+        1.0f);
+    XMStoreFloat3(&psc.Lights[0].Direction, lightDir);
+    psc.Lights[0].Strength = { 1.0f, 1.0f, 0.9f };
+
+    gfxContext.SetDynamicConstantBufferView(1, sizeof(psc), &psc);
+
     // land
     // 设置顶点视图
     gfxContext.SetVertexBuffer(0, m_VertexBufferLand.VertexBufferView());
     // 设置索引视图
     gfxContext.SetIndexBuffer(m_IndexBufferLand.IndexBufferView());
+
+    MaterialConstants mc;
+    mc.DiffuseAlbedo = { 0.2f, 0.6f, 0.2f, 1.0f };
+    mc.FresnelR0 = { 0.01f, 0.01f, 0.01f };
+    mc.Roughness = 0.125f;
+    gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
 
     // 绘制
     gfxContext.DrawIndexedInstanced(m_IndexBufferLand.GetElementCount(), 1, 0, 0, 0);
@@ -523,6 +566,10 @@ void GameApp::renderLandAndWaves(GraphicsContext& gfxContext)
 
     gfxContext.SetDynamicVB(0, m_verticesWaves.size(), sizeof(Vertex), m_verticesWaves.data());
 
+    mc.DiffuseAlbedo = { 0.0f, 0.2f, 0.6f, 1.0f };
+    mc.FresnelR0 = { 0.1f, 0.1f, 0.1f };
+    mc.Roughness = 0.0f;
+    gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
     // 绘制
     gfxContext.DrawIndexedInstanced(m_IndexBufferWaves.GetElementCount(), 1, 0, 0, 0);
 }

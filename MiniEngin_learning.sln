@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter 7 Drawing in Direct
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter 8 Lighting", "Chapter 8 Lighting\Chapter 8 Lighting.vcxproj", "{4D2CF6C0-73B7-4304-934E-9FF9024DE343}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter 9 Texturing", "Chapter 9 Texturing\Chapter 9 Texturing.vcxproj", "{7B7579B2-E5A1-48D7-839E-4E28C3967990}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -45,6 +47,12 @@ Global
 		{4D2CF6C0-73B7-4304-934E-9FF9024DE343}.Release|x64.ActiveCfg = Release|x64
 		{4D2CF6C0-73B7-4304-934E-9FF9024DE343}.Release|x64.Build.0 = Release|x64
 		{4D2CF6C0-73B7-4304-934E-9FF9024DE343}.Release|x86.ActiveCfg = Release|x64
+		{7B7579B2-E5A1-48D7-839E-4E28C3967990}.Debug|x64.ActiveCfg = Debug|x64
+		{7B7579B2-E5A1-48D7-839E-4E28C3967990}.Debug|x64.Build.0 = Debug|x64
+		{7B7579B2-E5A1-48D7-839E-4E28C3967990}.Debug|x86.ActiveCfg = Debug|x64
+		{7B7579B2-E5A1-48D7-839E-4E28C3967990}.Release|x64.ActiveCfg = Release|x64
+		{7B7579B2-E5A1-48D7-839E-4E28C3967990}.Release|x64.Build.0 = Release|x64
+		{7B7579B2-E5A1-48D7-839E-4E28C3967990}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

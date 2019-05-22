@@ -78,7 +78,7 @@ private:
     ByteAddressBuffer m_IndexBufferWaves;
     std::vector<Vertex> m_verticesWaves;
     Matrix4 m_waveWorld = Transpose(Matrix4(kIdentity));
-    float mSunTheta = 1.25f * XM_PI;
+    float mSunTheta = 0.25f * XM_PI;
     float mSunPhi = XM_PIDIV4;
     
     // ÉãÏñ»ú

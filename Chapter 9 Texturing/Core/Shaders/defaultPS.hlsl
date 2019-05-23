@@ -20,14 +20,15 @@
 // Include structures and functions for lighting.
 #include "LightingUtil.hlsl"
 
-// Constant data that varies per frame.
+Texture2D    gDiffuseMap : register(t0);
 
-// Constant data that varies per material.
+SamplerState gsamAnisotropicWrap  : register(s0);
+
+// Constant data that varies per frame.
 cbuffer cbPass : register(b1)
 {
     float4x4 gViewProj;
     float3 gEyePosW;
-    float cbPerObjectPad1;
     float4 gAmbientLight;
 
     // Indices [0, NUM_DIR_LIGHTS) are directional lights;
@@ -37,6 +38,7 @@ cbuffer cbPass : register(b1)
     Light gLights[MaxLights];
 };
 
+// Constant data that varies per material.
 cbuffer cbMaterial : register(b2)
 {
     float4 gDiffuseAlbedo;
@@ -50,10 +52,13 @@ struct VertexOut
     float4 PosH    : SV_POSITION;
     float3 PosW    : POSITION;
     float3 NormalW : NORMAL;
+    float2 TexC    : TEXCOORD;
 };
 
 float4 main(VertexOut pin) : SV_Target0
 {
+    float4 diffuseAlbedo = gDiffuseMap.Sample(gsamAnisotropicWrap, pin.TexC) * gDiffuseAlbedo;
+
     // Interpolating normal can unnormalize it, so renormalize it.
     pin.NormalW = normalize(pin.NormalW);
 
@@ -61,10 +66,10 @@ float4 main(VertexOut pin) : SV_Target0
     float3 toEyeW = normalize(gEyePosW - pin.PosW);
 
     // Indirect lighting.
-    float4 ambient = gAmbientLight * gDiffuseAlbedo;
+    float4 ambient = gAmbientLight * diffuseAlbedo;
 
     const float shininess = 1.0f - gRoughness;
-    Material mat = { gDiffuseAlbedo, gFresnelR0, shininess };
+    Material mat = { diffuseAlbedo, gFresnelR0, shininess };
     float3 shadowFactor = 1.0f;
     float4 directLight = ComputeLighting(gLights, mat, pin.PosW,
         pin.NormalW, toEyeW, shadowFactor);
@@ -72,7 +77,7 @@ float4 main(VertexOut pin) : SV_Target0
     float4 litColor = ambient + directLight;
 
     // Common convention to take alpha from diffuse material.
-    litColor.a = gDiffuseAlbedo.a;
+    litColor.a = diffuseAlbedo.a;
 
     return litColor;
 }

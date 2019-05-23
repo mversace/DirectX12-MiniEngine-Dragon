@@ -19,7 +19,7 @@
 #include "PipelineState.h"
 #include "RootSignature.h"
 #include "GpuBuffer.h"
-//#include "TextureManager.h"
+#include "TextureManager.h"
 #include "PixelBuffer.h"
 #include "DynamicDescriptorHeap.h"
 #include "LinearAllocator.h"
@@ -29,6 +29,7 @@
 
 class ColorBuffer;
 class DepthBuffer;
+class Texture;
 class GraphicsContext;
 
 struct DWParam

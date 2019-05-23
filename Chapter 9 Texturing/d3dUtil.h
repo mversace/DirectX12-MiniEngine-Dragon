@@ -19,6 +19,7 @@ struct Light
 __declspec(align(16)) struct ObjectConstants
 {
     Matrix4 World = Matrix4(kIdentity); // 把物体从模型坐标转换到世界坐标
+    Matrix4 texTransform = Matrix4(kIdentity); // 该顶点所用纹理的转换矩阵
 };
 
 __declspec(align(16)) struct PassConstants

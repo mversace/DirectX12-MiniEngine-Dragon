@@ -76,6 +76,9 @@
     <Filter Include="Shaders\default">
       <UniqueIdentifier>{6f915565-9b4a-40af-b0eb-818205eefe85}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Graphics\Texture">
+      <UniqueIdentifier>{5a7d369c-0aad-4e98-9906-82afcdfade82}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\Math\Frustum.cpp">
@@ -176,6 +179,15 @@
     </ClCompile>
     <ClCompile Include="Core\Graphics\Resource\ReadbackBuffer.cpp">
       <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Texture\TextureManager.cpp">
+      <Filter>Core\Graphics\Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Texture\DDSTextureLoader.cpp">
+      <Filter>Core\Graphics\Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\FileUtility.cpp">
+      <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -320,6 +332,18 @@
     <ClInclude Include="Core\Graphics\Resource\ReadbackBuffer.h">
       <Filter>Core\Graphics\Resource</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Graphics\Texture\TextureManager.h">
+      <Filter>Core\Graphics\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Texture\dds.h">
+      <Filter>Core\Graphics\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Texture\DDSTextureLoader.h">
+      <Filter>Core\Graphics\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\FileUtility.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Core\Math\Functions.inl">
@@ -403,6 +427,7 @@
     <None Include="Core\Shaders\LightingUtil.hlsl">
       <Filter>Shaders\default</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Core\Shaders\Bitonic32InnerSortCS.hlsl">

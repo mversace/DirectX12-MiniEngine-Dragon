@@ -54,7 +54,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>Core;Core\Graphics;Core\Graphics\Command;Core\Graphics\DescriptorHeap;Core\Graphics\Pipeline;Core\Graphics\Resource;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Core;Core\Graphics;Core\Graphics\Command;Core\Graphics\DescriptorHeap;Core\Graphics\Pipeline;Core\Graphics\Resource;Core\Graphics\Texture;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -78,7 +78,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>Core;Core\Graphics;Core\Graphics\Command;Core\Graphics\DescriptorHeap;Core\Graphics\Pipeline;Core\Graphics\Resource;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Core;Core\Graphics;Core\Graphics\Command;Core\Graphics\DescriptorHeap;Core\Graphics\Pipeline;Core\Graphics\Resource;Core\Graphics\Texture;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -98,6 +98,7 @@
   <ItemGroup>
     <ClCompile Include="Core\CameraController.cpp" />
     <ClCompile Include="Core\EngineTuning.cpp" />
+    <ClCompile Include="Core\FileUtility.cpp" />
     <ClCompile Include="Core\GameCore.cpp" />
     <ClCompile Include="Core\GameInput.cpp" />
     <ClCompile Include="Core\Graphics\Camera.cpp" />
@@ -120,6 +121,8 @@
     <ClCompile Include="Core\Graphics\Resource\LinearAllocator.cpp" />
     <ClCompile Include="Core\Graphics\Resource\PixelBuffer.cpp" />
     <ClCompile Include="Core\Graphics\Resource\ReadbackBuffer.cpp" />
+    <ClCompile Include="Core\Graphics\Texture\DDSTextureLoader.cpp" />
+    <ClCompile Include="Core\Graphics\Texture\TextureManager.cpp" />
     <ClCompile Include="Core\Math\Frustum.cpp" />
     <ClCompile Include="Core\Math\Random.cpp" />
     <ClCompile Include="Core\pch.cpp" />
@@ -133,6 +136,7 @@
   <ItemGroup>
     <ClInclude Include="Core\CameraController.h" />
     <ClInclude Include="Core\EngineTuning.h" />
+    <ClInclude Include="Core\FileUtility.h" />
     <ClInclude Include="Core\GameCore.h" />
     <ClInclude Include="Core\GameInput.h" />
     <ClInclude Include="Core\Graphics\Camera.h" />
@@ -158,6 +162,9 @@
     <ClInclude Include="Core\Graphics\Resource\LinearAllocator.h" />
     <ClInclude Include="Core\Graphics\Resource\PixelBuffer.h" />
     <ClInclude Include="Core\Graphics\Resource\ReadbackBuffer.h" />
+    <ClInclude Include="Core\Graphics\Texture\dds.h" />
+    <ClInclude Include="Core\Graphics\Texture\DDSTextureLoader.h" />
+    <ClInclude Include="Core\Graphics\Texture\TextureManager.h" />
     <ClInclude Include="Core\Hash.h" />
     <ClInclude Include="Core\Math\BoundingPlane.h" />
     <ClInclude Include="Core\Math\BoundingSphere.h" />
@@ -206,6 +213,7 @@
     <None Include="Core\Shaders\ShaderUtility.hlsli" />
     <None Include="Core\Shaders\SSAORS.hlsli" />
     <None Include="Core\Shaders\TextRS.hlsli" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Core\Shaders\AdaptExposureCS.hlsl" />
@@ -429,5 +437,12 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\zlib-vc140-static-64.1.2.11\build\native\zlib-vc140-static-64.targets" Condition="Exists('..\packages\zlib-vc140-static-64.1.2.11\build\native\zlib-vc140-static-64.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>这台计算机上缺少此项目引用的 NuGet 程序包。使用“NuGet 程序包还原”可下载这些程序包。有关更多信息，请参见 http://go.microsoft.com/fwlink/?LinkID=322105。缺少的文件是 {0}。</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\zlib-vc140-static-64.1.2.11\build\native\zlib-vc140-static-64.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\zlib-vc140-static-64.1.2.11\build\native\zlib-vc140-static-64.targets'))" />
+  </Target>
 </Project>

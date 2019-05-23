@@ -12,8 +12,6 @@ class RootSignature;
 class StructuredBuffer;
 class ByteAddressBuffer;
 class GraphicsPSO;
-using namespace Math;
-using namespace GameCore;
 class GameApp : public GameCore::IGameApp
 {
 public:
@@ -30,15 +28,16 @@ private:
     struct renderItem
     {
         Matrix4 modelToWorld;
+        Matrix4 texTransform;
         int indexCount;
         int startIndex;
         int baseVertex;
         XMFLOAT4 diffuseAlbedo;
         XMFLOAT3 fresnelR0;
         float roughness;
+        D3D12_CPU_DESCRIPTOR_HANDLE srv;
     };
     void buildShapesData();
-    void buildSkull();
     void renderShapes(GraphicsContext& gfxContext);
 
     void buildLandAndWaves();
@@ -53,6 +52,7 @@ private:
     {
         XMFLOAT3 Pos;
         XMFLOAT3 Normal;
+        XMFLOAT2 TexC;
     };
 
     RootSignature m_RootSignature;
@@ -60,7 +60,7 @@ private:
     GraphicsPSO m_PSOEx;
 
     bool m_bRenderShapes = true;
-    bool m_bRenderFill = false;
+    bool m_bRenderFill = true;
 
     // shapes
     StructuredBuffer m_VertexBuffer;
@@ -69,7 +69,6 @@ private:
     // skull
     StructuredBuffer m_VertexBufferSkull;
     ByteAddressBuffer m_IndexBufferSkull;
-    renderItem m_skull;
 
     // land and waves
     StructuredBuffer m_VertexBufferLand;

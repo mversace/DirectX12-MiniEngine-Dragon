@@ -4,6 +4,7 @@
 #include "BufferManager.h"
 #include "CommandContext.h"
 #include "GeometryGenerator.h"
+#include "TextureManager.h"
 
 #include <DirectXColors.h>
 #include <fstream>
@@ -32,35 +33,36 @@ static int Rand(int a, int b)
     return a + rand() % ((b - a) + 1);
 }
 
-using namespace Graphics;
 void GameApp::Startup(void)
 {
     buildShapesData();
-    buildSkull();
     buildLandAndWaves();
 
     // 根签名
-    m_RootSignature.Reset(3, 0);
+    m_RootSignature.Reset(4, 1);
+    m_RootSignature.InitStaticSampler(0, Graphics::SamplerAnisoWrapDesc, D3D12_SHADER_VISIBILITY_PIXEL);
     m_RootSignature[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX);
     m_RootSignature[1].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_ALL);
     m_RootSignature[2].InitAsConstantBuffer(2, D3D12_SHADER_VISIBILITY_PIXEL);
+    m_RootSignature[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, D3D12_SHADER_VISIBILITY_PIXEL);
     m_RootSignature.Finalize(L"box signature", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
     D3D12_INPUT_ELEMENT_DESC mInputLayout[] =
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+        { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
     };
 
-    DXGI_FORMAT ColorFormat = g_SceneColorBuffer.GetFormat();
-    DXGI_FORMAT DepthFormat = g_SceneDepthBuffer.GetFormat();
+    DXGI_FORMAT ColorFormat = Graphics::g_SceneColorBuffer.GetFormat();
+    DXGI_FORMAT DepthFormat = Graphics::g_SceneDepthBuffer.GetFormat();
 
     m_PSO.SetRootSignature(m_RootSignature);
-    auto raster = RasterizerDefault;
+    auto raster = Graphics::RasterizerDefault;
     raster.FillMode = D3D12_FILL_MODE_WIREFRAME;
     m_PSO.SetRasterizerState(raster);
-    m_PSO.SetBlendState(BlendDisable);
-    m_PSO.SetDepthStencilState(DepthStateReadWrite);
+    m_PSO.SetBlendState(Graphics::BlendDisable);
+    m_PSO.SetDepthStencilState(Graphics::DepthStateReadWrite);
     m_PSO.SetInputLayout(_countof(mInputLayout), mInputLayout);
     m_PSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
     m_PSO.SetRenderTargetFormat(ColorFormat, DepthFormat);
@@ -69,7 +71,7 @@ void GameApp::Startup(void)
     m_PSO.Finalize();
 
     m_PSOEx = m_PSO;
-    m_PSOEx.SetRasterizerState(RasterizerDefault);
+    m_PSOEx.SetRasterizerState(Graphics::RasterizerDefault);
     m_PSOEx.Finalize();
 }
 
@@ -87,8 +89,8 @@ void GameApp::Cleanup(void)
 
 void GameApp::Update(float deltaT)
 {
-    float fps = GetFrameRate(); // fps = frameCnt / 1
-    float mspf = GetFrameTime();
+    float fps = Graphics::GetFrameRate(); // fps = frameCnt / 1
+    float mspf = Graphics::GetFrameTime();
 
     std::wstring fpsStr = std::to_wstring(fps);
     std::wstring mspfStr = std::to_wstring(mspf);
@@ -157,15 +159,15 @@ void GameApp::Update(float deltaT)
 
     m_ViewProjMatrix = m_Camera.GetViewProjMatrix();
 
-    m_MainViewport.Width = (float)g_SceneColorBuffer.GetWidth();
-    m_MainViewport.Height = (float)g_SceneColorBuffer.GetHeight();
+    m_MainViewport.Width = (float)Graphics::g_SceneColorBuffer.GetWidth();
+    m_MainViewport.Height = (float)Graphics::g_SceneColorBuffer.GetHeight();
     m_MainViewport.MinDepth = 0.0f;
     m_MainViewport.MaxDepth = 1.0f;
 
     m_MainScissor.left = 0;
     m_MainScissor.top = 0;
-    m_MainScissor.right = (LONG)g_SceneColorBuffer.GetWidth();
-    m_MainScissor.bottom = (LONG)g_SceneColorBuffer.GetHeight();
+    m_MainScissor.right = (LONG)Graphics::g_SceneColorBuffer.GetWidth();
+    m_MainScissor.bottom = (LONG)Graphics::g_SceneColorBuffer.GetHeight();
 
     if (!m_bRenderShapes)
         UpdateWaves(deltaT);
@@ -192,16 +194,16 @@ void GameApp::RenderScene(void)
 {
     GraphicsContext& gfxContext = GraphicsContext::Begin(L"Scene Render");
 
-    gfxContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+    gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
 
     gfxContext.SetViewportAndScissor(m_MainViewport, m_MainScissor);
 
-    gfxContext.ClearColor(g_SceneColorBuffer);
+    gfxContext.ClearColor(Graphics::g_SceneColorBuffer);
 
-    gfxContext.TransitionResource(g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
-    gfxContext.ClearDepth(g_SceneDepthBuffer);
+    gfxContext.TransitionResource(Graphics::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
+    gfxContext.ClearDepth(Graphics::g_SceneDepthBuffer);
 
-    gfxContext.SetRenderTarget(g_SceneColorBuffer.GetRTV(), g_SceneDepthBuffer.GetDSV());
+    gfxContext.SetRenderTarget(Graphics::g_SceneColorBuffer.GetRTV(), Graphics::g_SceneDepthBuffer.GetDSV());
 
     // 设置渲染流水线
     if (m_bRenderFill)
@@ -220,16 +222,23 @@ void GameApp::RenderScene(void)
     else
         renderLandAndWaves(gfxContext);
 
-    gfxContext.TransitionResource(g_SceneColorBuffer, D3D12_RESOURCE_STATE_PRESENT);
+    gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PRESENT);
 
     gfxContext.Finish();
 }
 
 void GameApp::buildShapesData()
 {
+    TextureManager::Initialize(L"Textures/");
+
+    const ManagedTexture* MatTextures[3] = {};
+    MatTextures[0] = TextureManager::LoadFromFile(L"bricks", true);
+    MatTextures[1] = TextureManager::LoadFromFile(L"stone", true);
+    MatTextures[2] = TextureManager::LoadFromFile(L"tile", true);
+
     // 创建形状顶点
     GeometryGenerator geoGen;
-    GeometryGenerator::MeshData box = geoGen.CreateBox(1.5f, 0.5f, 1.5f, 3);
+    GeometryGenerator::MeshData box = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 3);
     GeometryGenerator::MeshData grid = geoGen.CreateGrid(20.0f, 30.0f, 60, 40);
     GeometryGenerator::MeshData sphere = geoGen.CreateSphere(0.5f, 20, 20);
     GeometryGenerator::MeshData cylinder = geoGen.CreateCylinder(0.5f, 0.3f, 3.0f, 20, 20);
@@ -247,24 +256,28 @@ void GameApp::buildShapesData()
     {
         vertices[k].Pos = box.Vertices[i].Position;
         vertices[k].Normal = box.Vertices[i].Normal;
+        vertices[k].TexC = box.Vertices[i].TexC;
     }
 
     for (size_t i = 0; i < grid.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = grid.Vertices[i].Position;
         vertices[k].Normal = grid.Vertices[i].Normal;
+        vertices[k].TexC = grid.Vertices[i].TexC;
     }
 
     for (size_t i = 0; i < sphere.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = sphere.Vertices[i].Position;
         vertices[k].Normal = sphere.Vertices[i].Normal;
+        vertices[k].TexC = sphere.Vertices[i].TexC;
     }
 
     for (size_t i = 0; i < cylinder.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = cylinder.Vertices[i].Position;
         vertices[k].Normal = cylinder.Vertices[i].Normal;
+        vertices[k].TexC = cylinder.Vertices[i].TexC;
     }
 
     std::vector<std::uint16_t> indices;
@@ -292,25 +305,31 @@ void GameApp::buildShapesData()
 
     renderItem item;
     // box
-    item.modelToWorld = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(2.0f, 2.0f, 2.0f), Vector3(0.0f, 0.5f, 0.0f))));
+    item.modelToWorld = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(2.0f, 2.0f, 2.0f), Vector3(0.0f, 1.0f, 0.0f))));
+    item.texTransform = Transpose(Matrix4(kIdentity));
     item.indexCount = (UINT)box.Indices32.size();
     item.startIndex = boxIndexOffset;
     item.baseVertex = boxVertexOffset;
-    item.diffuseAlbedo = XMFLOAT4(Colors::LightSteelBlue);
+    item.diffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
     item.fresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
     item.roughness = 0.3f;
+    item.srv = MatTextures[1]->GetSRV();
     m_vecShapes.push_back(item);
 
     // grid
     item.modelToWorld = Transpose(Matrix4(kIdentity));
+    item.texTransform = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(8.0f, 8.0f, 1.0f))));
     item.indexCount = (UINT)grid.Indices32.size();
     item.startIndex = gridIndexOffset;
     item.baseVertex = gridVertexOffset;
-    item.diffuseAlbedo = XMFLOAT4(Colors::LightGray);
+    item.diffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
     item.fresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
-    item.roughness = 0.2f;
+    item.roughness = 0.3f;
+    item.srv = MatTextures[2]->GetSRV();
     m_vecShapes.push_back(item);
 
+
+    item.texTransform = Transpose(Matrix4(kIdentity));
     for (int i = 0; i < 5; ++i)
     {
         Matrix4 leftCylWorld = Transpose(Matrix4(AffineTransform(Vector3(-5.0f, 1.5f, -10.0f + i * 5.0f))));
@@ -324,9 +343,10 @@ void GameApp::buildShapesData()
         item.startIndex = cylinderIndexOffset;
         item.baseVertex = cylinderVertexOffset;
         item.modelToWorld = leftCylWorld;
-        item.diffuseAlbedo = XMFLOAT4(Colors::ForestGreen);
+        item.diffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
         item.fresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
         item.roughness = 0.1f;
+        item.srv = MatTextures[0]->GetSRV();
         m_vecShapes.push_back(item);
         item.modelToWorld = rightCylWorld;
         m_vecShapes.push_back(item);
@@ -336,64 +356,14 @@ void GameApp::buildShapesData()
         item.startIndex = sphereIndexOffset;
         item.baseVertex = sphereVertexOffset;
         item.modelToWorld = leftSphereWorld;
-        item.diffuseAlbedo = XMFLOAT4(Colors::LightSteelBlue);
+        item.diffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
         item.fresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
         item.roughness = 0.3f;
+        item.srv = MatTextures[1]->GetSRV();
         m_vecShapes.push_back(item);
         item.modelToWorld = rightSphereWorld;
         m_vecShapes.push_back(item);
     }
-}
-
-void GameApp::buildSkull()
-{
-    // create skull
-    std::ifstream fin("Models/skull.txt");
-
-    if (!fin)
-    {
-        MessageBox(0, L"Models/skull.txt not found.", 0, 0);
-        return;
-    }
-
-    UINT vcount = 0;
-    UINT tcount = 0;
-    std::string ignore;
-
-    fin >> ignore >> vcount;
-    fin >> ignore >> tcount;
-    fin >> ignore >> ignore >> ignore >> ignore;
-
-    std::vector<Vertex> vertices(vcount);
-    for (UINT i = 0; i < vcount; ++i)
-    {
-        fin >> vertices[i].Pos.x >> vertices[i].Pos.y >> vertices[i].Pos.z;
-        fin >> vertices[i].Normal.x >> vertices[i].Normal.y >> vertices[i].Normal.z;
-    }
-
-    fin >> ignore;
-    fin >> ignore;
-    fin >> ignore;
-
-    std::vector<std::int32_t> indices(3 * tcount);
-    for (UINT i = 0; i < tcount; ++i)
-    {
-        fin >> indices[i * 3 + 0] >> indices[i * 3 + 1] >> indices[i * 3 + 2];
-    }
-
-    fin.close();
-
-    // GPUBuff类，自动把对象通过上传缓冲区传到了对应的默认堆中
-    m_VertexBufferSkull.Create(L"vertex buff", (UINT)vertices.size(), sizeof(Vertex), vertices.data());
-    m_IndexBufferSkull.Create(L"index buff", (UINT)indices.size(), sizeof(std::int32_t), indices.data());
-
-    m_skull.modelToWorld = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(0.5f, 0.5f, 0.5f), Vector3(0.0f, 1.0f, 0.0f))));
-    m_skull.indexCount = (UINT)indices.size();
-    m_skull.startIndex = 0;
-    m_skull.baseVertex = 0;
-    m_skull.diffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-    m_skull.fresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
-    m_skull.roughness = 0.3f;
 }
 
 void GameApp::renderShapes(GraphicsContext& gfxContext)
@@ -423,7 +393,10 @@ void GameApp::renderShapes(GraphicsContext& gfxContext)
         // 设置常量缓冲区数据
         ObjectConstants obc;
         obc.World = item.modelToWorld;
+        obc.texTransform = item.texTransform;
         gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
+
+        gfxContext.SetDynamicDescriptor(3, 0, item.srv);
 
         MaterialConstants mc;
         mc.DiffuseAlbedo = { item.diffuseAlbedo.x, item.diffuseAlbedo.y, item.diffuseAlbedo.z, item.diffuseAlbedo.w };
@@ -434,23 +407,6 @@ void GameApp::renderShapes(GraphicsContext& gfxContext)
         // 绘制
         gfxContext.DrawIndexedInstanced(item.indexCount, 1, item.startIndex, item.baseVertex, 0);
     }
-
-    // 绘制skull
-    gfxContext.SetVertexBuffer(0, m_VertexBufferSkull.VertexBufferView());
-    gfxContext.SetIndexBuffer(m_IndexBufferSkull.IndexBufferView());
-
-    ObjectConstants obc;
-    obc.World = m_skull.modelToWorld;
-    gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
-
-    MaterialConstants mc;
-    mc.DiffuseAlbedo = { m_skull.diffuseAlbedo.x, m_skull.diffuseAlbedo.y, m_skull.diffuseAlbedo.z, m_skull.diffuseAlbedo.w };
-    mc.FresnelR0 = m_skull.fresnelR0;
-    mc.Roughness = m_skull.roughness;
-    gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
-
-    // 绘制
-    gfxContext.DrawIndexedInstanced(m_skull.indexCount, 1, m_skull.startIndex, m_skull.baseVertex, 0);
 }
 
 void GameApp::buildLandAndWaves()

@@ -78,36 +78,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Core\CommandContext.cpp">
-      <Filter>Core\Graphics\Command</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\CommandListManager.cpp">
-      <Filter>Core\Graphics\Command</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\CommandAllocatorPool.cpp">
-      <Filter>Core\Graphics\Command</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\DescriptorHeap.cpp">
-      <Filter>Core\Graphics\DescriptorHeap</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\PixelBuffer.cpp">
-      <Filter>Core\Graphics\Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\BufferManager.cpp">
-      <Filter>Core\Graphics\Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\ColorBuffer.cpp">
-      <Filter>Core\Graphics\Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\DepthBuffer.cpp">
-      <Filter>Core\Graphics\Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\GraphicsCore.cpp">
-      <Filter>Core\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Color.cpp">
-      <Filter>Core\Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="Core\Math\Frustum.cpp">
       <Filter>Core\Math</Filter>
     </ClCompile>
@@ -129,33 +99,6 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Core\LinearAllocator.cpp">
-      <Filter>Core\Graphics\Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\DynamicUploadBuffer.cpp">
-      <Filter>Core\Graphics\Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\RootSignature.cpp">
-      <Filter>Core\Graphics\Pipeline</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\DynamicDescriptorHeap.cpp">
-      <Filter>Core\Graphics\DescriptorHeap</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\PipelineState.cpp">
-      <Filter>Core\Graphics\Pipeline</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\GpuBuffer.cpp">
-      <Filter>Core\Graphics\Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\GraphicsCommon.cpp">
-      <Filter>Core\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\SamplerManager.cpp">
-      <Filter>Core\Graphics\Pipeline</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\ReadbackBuffer.cpp">
-      <Filter>Core\Graphics\Resource</Filter>
-    </ClCompile>
     <ClCompile Include="Core\EngineTuning.cpp">
       <Filter>Core</Filter>
     </ClCompile>
@@ -164,9 +107,6 @@
     </ClCompile>
     <ClCompile Include="Core\GameInput.cpp">
       <Filter>Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Camera.cpp">
-      <Filter>Core\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Core\CameraController.cpp">
       <Filter>Core</Filter>
@@ -177,47 +117,68 @@
     <ClCompile Include="Waves.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Core\Graphics\Camera.cpp">
+      <Filter>Core\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Color.cpp">
+      <Filter>Core\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\GraphicsCommon.cpp">
+      <Filter>Core\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\GraphicsCore.cpp">
+      <Filter>Core\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Command\CommandAllocatorPool.cpp">
+      <Filter>Core\Graphics\Command</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Command\CommandContext.cpp">
+      <Filter>Core\Graphics\Command</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Command\CommandListManager.cpp">
+      <Filter>Core\Graphics\Command</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\DescriptorHeap\DescriptorHeap.cpp">
+      <Filter>Core\Graphics\DescriptorHeap</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\DescriptorHeap\DynamicDescriptorHeap.cpp">
+      <Filter>Core\Graphics\DescriptorHeap</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Pipeline\PipelineState.cpp">
+      <Filter>Core\Graphics\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Pipeline\RootSignature.cpp">
+      <Filter>Core\Graphics\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Pipeline\SamplerManager.cpp">
+      <Filter>Core\Graphics\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Resource\BufferManager.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Resource\ColorBuffer.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Resource\DepthBuffer.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Resource\DynamicUploadBuffer.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Resource\GpuBuffer.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Resource\LinearAllocator.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Resource\PixelBuffer.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Resource\ReadbackBuffer.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Core\CommandContext.h">
-      <Filter>Core\Graphics\Command</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\CommandListManager.h">
-      <Filter>Core\Graphics\Command</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\CommandAllocatorPool.h">
-      <Filter>Core\Graphics\Command</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\DescriptorHeap.h">
-      <Filter>Core\Graphics\DescriptorHeap</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\GpuResource.h">
-      <Filter>Core\Graphics\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\PixelBuffer.h">
-      <Filter>Core\Graphics\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\BufferManager.h">
-      <Filter>Core\Graphics\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\ColorBuffer.h">
-      <Filter>Core\Graphics\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\DepthBuffer.h">
-      <Filter>Core\Graphics\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\EsramAllocator.h">
-      <Filter>Core\Graphics\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\GraphicsCore.h">
-      <Filter>Core\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Color.h">
-      <Filter>Core\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\d3dx12.h">
-      <Filter>Core\Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Core\Math\BoundingPlane.h">
       <Filter>Core\Math</Filter>
     </ClInclude>
@@ -266,35 +227,8 @@
     <ClInclude Include="GameApp.h">
       <Filter>源文件</Filter>
     </ClInclude>
-    <ClInclude Include="Core\LinearAllocator.h">
-      <Filter>Core\Graphics\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\DynamicUploadBuffer.h">
-      <Filter>Core\Graphics\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\RootSignature.h">
-      <Filter>Core\Graphics\Pipeline</Filter>
-    </ClInclude>
     <ClInclude Include="Core\Hash.h">
       <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\DynamicDescriptorHeap.h">
-      <Filter>Core\Graphics\DescriptorHeap</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\PipelineState.h">
-      <Filter>Core\Graphics\Pipeline</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\GpuBuffer.h">
-      <Filter>Core\Graphics\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\GraphicsCommon.h">
-      <Filter>Core\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\SamplerManager.h">
-      <Filter>Core\Graphics\Pipeline</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\ReadbackBuffer.h">
-      <Filter>Core\Graphics\Resource</Filter>
     </ClInclude>
     <ClInclude Include="Core\EngineTuning.h">
       <Filter>Core</Filter>
@@ -304,9 +238,6 @@
     </ClInclude>
     <ClInclude Include="Core\GameInput.h">
       <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Camera.h">
-      <Filter>Core\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Core\CameraController.h">
       <Filter>Core</Filter>
@@ -320,20 +251,75 @@
     <ClInclude Include="d3dUtil.h">
       <Filter>源文件</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="Core\readme\readme_command.txt">
+    <ClInclude Include="Core\Graphics\Camera.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Color.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\d3dx12.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\GraphicsCommon.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\GraphicsCore.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Command\CommandAllocatorPool.h">
       <Filter>Core\Graphics\Command</Filter>
-    </Text>
-    <Text Include="Core\readme\readme_descriptorHeap.txt">
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Command\CommandContext.h">
+      <Filter>Core\Graphics\Command</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Command\CommandListManager.h">
+      <Filter>Core\Graphics\Command</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\DescriptorHeap\DescriptorHeap.h">
       <Filter>Core\Graphics\DescriptorHeap</Filter>
-    </Text>
-    <Text Include="Core\readme\readme_resource.txt">
-      <Filter>Core\Graphics\Resource</Filter>
-    </Text>
-    <Text Include="Core\readme\readme_pipeline.txt">
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\DescriptorHeap\DynamicDescriptorHeap.h">
+      <Filter>Core\Graphics\DescriptorHeap</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Pipeline\PipelineState.h">
       <Filter>Core\Graphics\Pipeline</Filter>
-    </Text>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Pipeline\RootSignature.h">
+      <Filter>Core\Graphics\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Pipeline\SamplerManager.h">
+      <Filter>Core\Graphics\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Resource\BufferManager.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Resource\ColorBuffer.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Resource\DepthBuffer.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Resource\DynamicUploadBuffer.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Resource\EsramAllocator.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Resource\GpuBuffer.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Resource\GpuResource.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Resource\LinearAllocator.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Resource\PixelBuffer.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Resource\ReadbackBuffer.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Core\Math\Functions.inl">
@@ -824,5 +810,19 @@
     <FxCompile Include="Core\Shaders\defaultPS.hlsl">
       <Filter>Shaders\default</Filter>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Core\Graphics\Command\readme_command.txt">
+      <Filter>Core\Graphics\Command</Filter>
+    </Text>
+    <Text Include="Core\Graphics\DescriptorHeap\readme_descriptorHeap.txt">
+      <Filter>Core\Graphics\DescriptorHeap</Filter>
+    </Text>
+    <Text Include="Core\Graphics\Pipeline\readme_pipeline.txt">
+      <Filter>Core\Graphics\Pipeline</Filter>
+    </Text>
+    <Text Include="Core\Graphics\Resource\readme_resource.txt">
+      <Filter>Core\Graphics\Resource</Filter>
+    </Text>
   </ItemGroup>
 </Project>

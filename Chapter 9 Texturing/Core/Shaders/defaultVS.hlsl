@@ -2,6 +2,7 @@ cbuffer VSConstants : register(b0)
 {
     float4x4 modelToWorld;
     float4x4 gTexTransform;
+    float4x4 gMatTransform;
 };
 
 cbuffer PassConstants : register(b1)
@@ -40,7 +41,7 @@ VertexOut main(VertexIn vin)
 
     // 直接返回纹理
     float4 texC = mul(float4(vin.TexC, 0.0f, 1.0f), gTexTransform);
-    vout.TexC = texC.xy;
+    vout.TexC = mul(texC, gMatTransform).xy;
 
     return vout;
 }

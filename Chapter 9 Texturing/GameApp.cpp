@@ -85,6 +85,9 @@ void GameApp::Cleanup(void)
     m_VertexBufferLand.Destroy();
     m_IndexBufferLand.Destroy();
     m_IndexBufferWaves.Destroy();
+
+    m_VertexBufferBox.Destroy();
+    m_IndexBufferBox.Destroy();
 }
 
 void GameApp::Update(float deltaT)
@@ -307,6 +310,7 @@ void GameApp::buildShapesData()
     // box
     item.modelToWorld = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(2.0f, 2.0f, 2.0f), Vector3(0.0f, 1.0f, 0.0f))));
     item.texTransform = Transpose(Matrix4(kIdentity));
+    item.matTransform = Transpose(Matrix4(kIdentity));
     item.indexCount = (UINT)box.Indices32.size();
     item.startIndex = boxIndexOffset;
     item.baseVertex = boxVertexOffset;
@@ -319,6 +323,7 @@ void GameApp::buildShapesData()
     // grid
     item.modelToWorld = Transpose(Matrix4(kIdentity));
     item.texTransform = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(8.0f, 8.0f, 1.0f))));
+    item.matTransform = Transpose(Matrix4(kIdentity));
     item.indexCount = (UINT)grid.Indices32.size();
     item.startIndex = gridIndexOffset;
     item.baseVertex = gridVertexOffset;
@@ -330,6 +335,7 @@ void GameApp::buildShapesData()
 
 
     item.texTransform = Transpose(Matrix4(kIdentity));
+    item.matTransform = Transpose(Matrix4(kIdentity));
     for (int i = 0; i < 5; ++i)
     {
         Matrix4 leftCylWorld = Transpose(Matrix4(AffineTransform(Vector3(-5.0f, 1.5f, -10.0f + i * 5.0f))));
@@ -394,6 +400,7 @@ void GameApp::renderShapes(GraphicsContext& gfxContext)
         ObjectConstants obc;
         obc.World = item.modelToWorld;
         obc.texTransform = item.texTransform;
+        obc.matTransform = item.matTransform;
         gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
 
         gfxContext.SetDynamicDescriptor(3, 0, item.srv);
@@ -411,6 +418,13 @@ void GameApp::renderShapes(GraphicsContext& gfxContext)
 
 void GameApp::buildLandAndWaves()
 {
+    TextureManager::Initialize(L"Textures/");
+
+    const ManagedTexture* MatTextures[3] = {};
+    MatTextures[0] = TextureManager::LoadFromFile(L"grass", true);
+    MatTextures[1] = TextureManager::LoadFromFile(L"water1", true);
+    MatTextures[2] = TextureManager::LoadFromFile(L"WoodCrate01", true);
+
     GeometryGenerator geoGen;
     GeometryGenerator::MeshData grid = geoGen.CreateGrid(160.0f, 160.0f, 50, 50);
 
@@ -427,6 +441,7 @@ void GameApp::buildLandAndWaves()
         vertices[i].Pos = p;
         vertices[i].Pos.y = GetHillsHeight(p.x, p.z);
         vertices[i].Normal = GetHillsNormal(p.x, p.z);
+        vertices[i].TexC = grid.Vertices[i].TexC;
     }
 
     std::vector<std::uint16_t> indices = grid.GetIndices16();
@@ -458,7 +473,56 @@ void GameApp::buildLandAndWaves()
         }
     }
     m_IndexBufferWaves.Create(L"wave index buff", (UINT)waveIndices.size(), sizeof(std::uint16_t), waveIndices.data());
+    m_verticesWaves.resize(m_waves.VertexCount());
 
+    // box
+    {
+        GeometryGenerator geoGen;
+        GeometryGenerator::MeshData box = geoGen.CreateBox(8.0f, 8.0f, 8.0f, 3);
+        auto totalVertexCount = box.Vertices.size();
+
+        std::vector<Vertex> vertices(totalVertexCount);
+
+        UINT k = 0;
+        for (size_t i = 0; i < box.Vertices.size(); ++i, ++k)
+        {
+            vertices[k].Pos = box.Vertices[i].Position;
+            vertices[k].Normal = box.Vertices[i].Normal;
+            vertices[k].TexC = box.Vertices[i].TexC;
+        }
+
+        std::vector<std::uint16_t> indices;
+        indices.insert(indices.end(), std::begin(box.GetIndices16()), std::end(box.GetIndices16()));
+
+        // GPUBuff类，自动把对象通过上传缓冲区传到了对应的默认堆中
+        m_VertexBufferBox.Create(L"vertex buff box", (UINT)vertices.size(), sizeof(Vertex), vertices.data());
+        m_IndexBufferBox.Create(L"index buff box", (UINT)indices.size(), sizeof(std::uint16_t), indices.data());
+    }
+
+    // build render item
+    m_renderItemLand.modelToWorld = Transpose(Matrix4(kIdentity));
+    m_renderItemLand.texTransform = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(5.0f, 5.0f, 1.0f))));
+    m_renderItemLand.matTransform = Transpose(Matrix4(kIdentity));
+    m_renderItemLand.diffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+    m_renderItemLand.fresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
+    m_renderItemLand.roughness = 0.125f;
+    m_renderItemLand.srv = MatTextures[0]->GetSRV();
+
+    m_renderItemWaves.modelToWorld = Transpose(Matrix4(kIdentity));
+    m_renderItemWaves.texTransform = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(5.0f, 5.0f, 1.0f))));
+    m_renderItemWaves.matTransform = Transpose(Matrix4(kIdentity));
+    m_renderItemWaves.diffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+    m_renderItemWaves.fresnelR0 = XMFLOAT3(0.2f, 0.2f, 0.2f);
+    m_renderItemWaves.roughness = 0.0f;
+    m_renderItemWaves.srv = MatTextures[1]->GetSRV();
+
+    m_renderItemBox.modelToWorld = Transpose(Matrix4(AffineTransform(Vector3{ 3.0f, 2.0f, -9.0f })));
+    m_renderItemBox.texTransform = Transpose(Matrix4(kIdentity));
+    m_renderItemBox.matTransform = Transpose(Matrix4(kIdentity));
+    m_renderItemBox.diffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+    m_renderItemBox.fresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
+    m_renderItemBox.roughness = 0.25f;
+    m_renderItemBox.srv = MatTextures[2]->GetSRV();
 }
 
 float GameApp::GetHillsHeight(float x, float z) const
@@ -482,8 +546,6 @@ XMFLOAT3 GameApp::GetHillsNormal(float x, float z)const
 
 void GameApp::renderLandAndWaves(GraphicsContext& gfxContext)
 {
-    gfxContext.SetDynamicConstantBufferView(0, sizeof(m_waveWorld), &m_waveWorld);
-
     PassConstants psc;
     // https://www.cnblogs.com/X-Jun/p/9808727.html
     // C++代码端进行转置，HLSL中使用matrix(列矩阵)
@@ -503,31 +565,82 @@ void GameApp::renderLandAndWaves(GraphicsContext& gfxContext)
     gfxContext.SetDynamicConstantBufferView(1, sizeof(psc), &psc);
 
     // land
-    // 设置顶点视图
-    gfxContext.SetVertexBuffer(0, m_VertexBufferLand.VertexBufferView());
-    // 设置索引视图
-    gfxContext.SetIndexBuffer(m_IndexBufferLand.IndexBufferView());
+    {
+        // 设置顶点视图
+        gfxContext.SetVertexBuffer(0, m_VertexBufferLand.VertexBufferView());
+        // 设置索引视图
+        gfxContext.SetIndexBuffer(m_IndexBufferLand.IndexBufferView());
 
-    MaterialConstants mc;
-    mc.DiffuseAlbedo = { 0.2f, 0.6f, 0.2f, 1.0f };
-    mc.FresnelR0 = { 0.01f, 0.01f, 0.01f };
-    mc.Roughness = 0.125f;
-    gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
+        // 设置常量缓冲区数据
+        ObjectConstants obc;
+        obc.World = m_renderItemLand.modelToWorld;
+        obc.texTransform = m_renderItemLand.texTransform;
+        obc.matTransform = m_renderItemLand.matTransform;
+        gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
 
-    // 绘制
-    gfxContext.DrawIndexedInstanced(m_IndexBufferLand.GetElementCount(), 1, 0, 0, 0);
+        gfxContext.SetDynamicDescriptor(3, 0, m_renderItemLand.srv);
+
+        MaterialConstants mc;
+        mc.DiffuseAlbedo = { m_renderItemLand.diffuseAlbedo.x, m_renderItemLand.diffuseAlbedo.y, m_renderItemLand.diffuseAlbedo.z, m_renderItemLand.diffuseAlbedo.w };
+        mc.FresnelR0 = m_renderItemLand.fresnelR0;
+        mc.Roughness = m_renderItemLand.roughness;
+        gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
+
+        // 绘制
+        gfxContext.DrawIndexedInstanced(m_IndexBufferLand.GetElementCount(), 1, 0, 0, 0);
+    }
+    
 
     // waves
-    gfxContext.SetIndexBuffer(m_IndexBufferWaves.IndexBufferView());
+    {
+        gfxContext.SetIndexBuffer(m_IndexBufferWaves.IndexBufferView());
 
-    gfxContext.SetDynamicVB(0, m_verticesWaves.size(), sizeof(Vertex), m_verticesWaves.data());
+        gfxContext.SetDynamicVB(0, m_verticesWaves.size(), sizeof(Vertex), m_verticesWaves.data());
 
-    mc.DiffuseAlbedo = { 0.0f, 0.2f, 0.6f, 1.0f };
-    mc.FresnelR0 = { 0.1f, 0.1f, 0.1f };
-    mc.Roughness = 0.0f;
-    gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
-    // 绘制
-    gfxContext.DrawIndexedInstanced(m_IndexBufferWaves.GetElementCount(), 1, 0, 0, 0);
+        // 设置常量缓冲区数据
+        ObjectConstants obc;
+        obc.World = m_renderItemWaves.modelToWorld;
+        obc.texTransform = m_renderItemWaves.texTransform;
+        obc.matTransform = Transpose(m_renderItemWaves.matTransform);
+        gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
+
+        gfxContext.SetDynamicDescriptor(3, 0, m_renderItemWaves.srv);
+
+        MaterialConstants mc;
+        mc.DiffuseAlbedo = { m_renderItemWaves.diffuseAlbedo.x, m_renderItemWaves.diffuseAlbedo.y, m_renderItemWaves.diffuseAlbedo.z, m_renderItemWaves.diffuseAlbedo.w };
+        mc.FresnelR0 = m_renderItemWaves.fresnelR0;
+        mc.Roughness = m_renderItemWaves.roughness;
+        gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
+
+        // 绘制
+        gfxContext.DrawIndexedInstanced(m_IndexBufferWaves.GetElementCount(), 1, 0, 0, 0);
+    }
+    
+    // box
+    {
+        // 设置顶点视图
+        gfxContext.SetVertexBuffer(0, m_VertexBufferBox.VertexBufferView());
+        // 设置索引视图
+        gfxContext.SetIndexBuffer(m_IndexBufferBox.IndexBufferView());
+
+        // 设置常量缓冲区数据
+        ObjectConstants obc;
+        obc.World = m_renderItemBox.modelToWorld;
+        obc.texTransform = m_renderItemBox.texTransform;
+        obc.matTransform = m_renderItemBox.matTransform;
+        gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
+
+        gfxContext.SetDynamicDescriptor(3, 0, m_renderItemBox.srv);
+
+        MaterialConstants mc;
+        mc.DiffuseAlbedo = { m_renderItemBox.diffuseAlbedo.x, m_renderItemBox.diffuseAlbedo.y, m_renderItemBox.diffuseAlbedo.z, m_renderItemBox.diffuseAlbedo.w };
+        mc.FresnelR0 = m_renderItemBox.fresnelR0;
+        mc.Roughness = m_renderItemBox.roughness;
+        gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
+
+        // 绘制
+        gfxContext.DrawIndexedInstanced(m_IndexBufferBox.GetElementCount(), 1, 0, 0, 0);
+    }
 }
 
 void GameApp::UpdateWaves(float deltaT)
@@ -555,14 +668,36 @@ void GameApp::UpdateWaves(float deltaT)
     m_waves.Update(deltaT);
 
     // Update the wave vertex buffer with the new solution.
-    m_verticesWaves.clear();
     for (int i = 0; i < m_waves.VertexCount(); ++i)
     {
-        Vertex v;
+        auto p = &m_verticesWaves[i];
 
-        v.Pos = m_waves.Position(i);
-        v.Normal = m_waves.Normal(i);
+        p->Pos = m_waves.Position(i);
+        p->Normal = m_waves.Normal(i);
 
-        m_verticesWaves.push_back(v);
+        // Derive tex-coords from position by 
+        // mapping [-w/2,w/2] --> [0,1]
+        p->TexC.x = 0.5f + p->Pos.x / m_waves.Width();
+        p->TexC.y = 0.5f - p->Pos.z / m_waves.Depth();
     }
+
+    AnimateMaterials(deltaT);
+}
+
+void GameApp::AnimateMaterials(float deltaT)
+{
+    // Scroll the water material texture coordinates.
+    float tu = (float)m_renderItemWaves.matTransform.GetW().GetX();
+    float tv = (float)m_renderItemWaves.matTransform.GetW().GetY();
+
+    tu += 0.1f * deltaT;
+    tv += 0.02f * deltaT;
+
+    if (tu >= 1.0f)
+        tu -= 1.0f;
+
+    if (tv >= 1.0f)
+        tv -= 1.0f;
+
+    m_renderItemWaves.matTransform.SetW({ tu, tv, 0.0f, 1.0f });
 }

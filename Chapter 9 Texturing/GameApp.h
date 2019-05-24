@@ -29,6 +29,7 @@ private:
     {
         Matrix4 modelToWorld;
         Matrix4 texTransform;
+        Matrix4 matTransform;
         int indexCount;
         int startIndex;
         int baseVertex;
@@ -45,6 +46,7 @@ private:
     XMFLOAT3 GetHillsNormal(float x, float z) const;
     void renderLandAndWaves(GraphicsContext& gfxContext);
     void UpdateWaves(float deltaT);
+    void AnimateMaterials(float deltaT);
 
 private:
     // 顶点结构体
@@ -73,10 +75,16 @@ private:
     // land and waves
     StructuredBuffer m_VertexBufferLand;
     ByteAddressBuffer m_IndexBufferLand;
+    renderItem m_renderItemLand;
+
     Waves m_waves{ 128, 128, 1.0f, 0.03f, 4.0f, 0.2f };
     ByteAddressBuffer m_IndexBufferWaves;
     std::vector<Vertex> m_verticesWaves;
-    Matrix4 m_waveWorld = Transpose(Matrix4(kIdentity));
+    renderItem m_renderItemWaves;
+    // box
+    StructuredBuffer m_VertexBufferBox;
+    ByteAddressBuffer m_IndexBufferBox;
+    renderItem m_renderItemBox;
     float mSunTheta = 0.25f * XM_PI;
     float mSunPhi = XM_PIDIV4;
     

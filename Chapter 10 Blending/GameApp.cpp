@@ -47,6 +47,7 @@ void GameApp::Startup(void)
     m_RootSignature[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, D3D12_SHADER_VISIBILITY_PIXEL);
     m_RootSignature.Finalize(L"box signature", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
+    // 创建PSO
     D3D12_INPUT_ELEMENT_DESC mInputLayout[] =
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -57,22 +58,29 @@ void GameApp::Startup(void)
     DXGI_FORMAT ColorFormat = Graphics::g_SceneColorBuffer.GetFormat();
     DXGI_FORMAT DepthFormat = Graphics::g_SceneDepthBuffer.GetFormat();
 
-    m_PSO.SetRootSignature(m_RootSignature);
+    // 默认PSO
+    GraphicsPSO defaultPSO;
+    defaultPSO.SetRootSignature(m_RootSignature);
+    defaultPSO.SetRasterizerState(Graphics::RasterizerDefault);
+    defaultPSO.SetBlendState(Graphics::BlendDisable);
+    defaultPSO.SetDepthStencilState(Graphics::DepthStateReadWrite);
+    defaultPSO.SetInputLayout(_countof(mInputLayout), mInputLayout);
+    defaultPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+    defaultPSO.SetRenderTargetFormat(ColorFormat, DepthFormat);
+    defaultPSO.SetVertexShader(g_pdefaultVS, sizeof(g_pdefaultVS));
+    defaultPSO.SetPixelShader(g_pdefaultPS, sizeof(g_pdefaultPS));
+    defaultPSO.Finalize();
+
+    // 默认PSO
+    m_mapPSO[E_EPT_DEFAULT] = defaultPSO;
+
+    // 仅仅画线的PSO
+    GraphicsPSO wireFramPSO = defaultPSO;
     auto raster = Graphics::RasterizerDefault;
     raster.FillMode = D3D12_FILL_MODE_WIREFRAME;
-    m_PSO.SetRasterizerState(raster);
-    m_PSO.SetBlendState(Graphics::BlendDisable);
-    m_PSO.SetDepthStencilState(Graphics::DepthStateReadWrite);
-    m_PSO.SetInputLayout(_countof(mInputLayout), mInputLayout);
-    m_PSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-    m_PSO.SetRenderTargetFormat(ColorFormat, DepthFormat);
-    m_PSO.SetVertexShader(g_pdefaultVS, sizeof(g_pdefaultVS));
-    m_PSO.SetPixelShader(g_pdefaultPS, sizeof(g_pdefaultPS));
-    m_PSO.Finalize();
-
-    m_PSOEx = m_PSO;
-    m_PSOEx.SetRasterizerState(Graphics::RasterizerDefault);
-    m_PSOEx.Finalize();
+    wireFramPSO.SetRasterizerState(raster);
+    wireFramPSO.Finalize();
+    m_mapPSO[E_EPT_WIREFRAME] = wireFramPSO;
 }
 
 void GameApp::Cleanup(void)
@@ -210,9 +218,9 @@ void GameApp::RenderScene(void)
 
     // 设置渲染流水线
     if (m_bRenderFill)
-        gfxContext.SetPipelineState(m_PSOEx);
+        gfxContext.SetPipelineState(m_mapPSO[E_EPT_DEFAULT]);
     else
-        gfxContext.SetPipelineState(m_PSO);
+        gfxContext.SetPipelineState(m_mapPSO[E_EPT_WIREFRAME]);
 
     // 设置根签名
     gfxContext.SetRootSignature(m_RootSignature);

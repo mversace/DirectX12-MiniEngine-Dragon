@@ -7,6 +7,7 @@
 #include "Camera.h"
 #include "Waves.h"
 #include "d3dUtil.h"
+#include <unordered_map>
 
 class RootSignature;
 class StructuredBuffer;
@@ -59,8 +60,13 @@ private:
     };
 
     RootSignature m_RootSignature;
-    GraphicsPSO m_PSO;
-    GraphicsPSO m_PSOEx;
+
+    enum ePSOType
+    {
+        E_EPT_DEFAULT = 1,
+        E_EPT_WIREFRAME = 2
+    };
+    std::unordered_map<int, GraphicsPSO> m_mapPSO;
 
     bool m_bRenderShapes = true;
     bool m_bRenderFill = true;

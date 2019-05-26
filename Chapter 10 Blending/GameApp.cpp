@@ -90,6 +90,17 @@ void GameApp::Startup(void)
     alphaTestPSO.SetRasterizerState(raster);
     alphaTestPSO.Finalize();
     m_mapPSO[E_EPT_ALPHATEST] = alphaTestPSO;
+
+    // 透明混合PSO
+    GraphicsPSO transparentPSO = defaultPSO;
+    auto blend = Graphics::BlendTraditional;
+    blend.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+    transparentPSO.SetBlendState(blend);
+    transparentPSO.Finalize();
+    m_mapPSO[E_EPT_TRANSPARENT] = transparentPSO;
+
+    // 初始化底色
+    Graphics::g_SceneColorBuffer.SetClearColor({ 0.7f, 0.7f, 0.7f });
 }
 
 void GameApp::Cleanup(void)
@@ -515,8 +526,8 @@ void GameApp::buildLandAndWaves()
     m_renderItemWaves.modelToWorld = Transpose(Matrix4(kIdentity));
     m_renderItemWaves.texTransform = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(5.0f, 5.0f, 1.0f))));
     m_renderItemWaves.matTransform = Transpose(Matrix4(kIdentity));
-    m_renderItemWaves.diffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-    m_renderItemWaves.fresnelR0 = XMFLOAT3(0.2f, 0.2f, 0.2f);
+    m_renderItemWaves.diffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.5f);
+    m_renderItemWaves.fresnelR0 = XMFLOAT3(0.12f, 0.1f, 0.1f);
     m_renderItemWaves.roughness = 0.0f;
     m_renderItemWaves.srv = MatTextures[1]->GetSRV();
 
@@ -580,20 +591,7 @@ void GameApp::renderLandAndWaves(GraphicsContext& gfxContext)
         // 绘制
         gfxContext.DrawIndexedInstanced(m_IndexBufferLand.GetElementCount(), 1, 0, 0, 0);
     }
-    
-
-    // waves
-    {
-        gfxContext.SetIndexBuffer(m_IndexBufferWaves.IndexBufferView());
-
-        gfxContext.SetDynamicVB(0, m_verticesWaves.size(), sizeof(Vertex), m_verticesWaves.data());
-
-        setShaderParam(gfxContext, m_renderItemWaves);
-
-        // 绘制
-        gfxContext.DrawIndexedInstanced(m_IndexBufferWaves.GetElementCount(), 1, 0, 0, 0);
-    }
-    
+   
     // box
     {
         // 设置顶点视图
@@ -607,6 +605,20 @@ void GameApp::renderLandAndWaves(GraphicsContext& gfxContext)
 
         // 绘制
         gfxContext.DrawIndexedInstanced(m_IndexBufferBox.GetElementCount(), 1, 0, 0, 0);
+    }
+
+    // waves
+    {
+        gfxContext.SetIndexBuffer(m_IndexBufferWaves.IndexBufferView());
+
+        gfxContext.SetDynamicVB(0, m_verticesWaves.size(), sizeof(Vertex), m_verticesWaves.data());
+
+        setShaderParam(gfxContext, m_renderItemWaves);
+
+        gfxContext.SetPipelineState(m_mapPSO[E_EPT_TRANSPARENT]);
+
+        // 绘制
+        gfxContext.DrawIndexedInstanced(m_IndexBufferWaves.GetElementCount(), 1, 0, 0, 0);
     }
 }
 

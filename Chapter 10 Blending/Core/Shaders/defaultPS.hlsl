@@ -29,7 +29,15 @@ cbuffer cbPass : register(b1)
 {
     float4x4 gViewProj;
     float3 gEyePosW;
+    float pad;
     float4 gAmbientLight;
+
+    // Allow application to change fog parameters once per frame.
+    // For example, we may only use fog for certain times of day.
+    float4 gFogColor;
+    float gFogStart;
+    float gFogRange;
+    float2 pad2;
 
     // Indices [0, NUM_DIR_LIGHTS) are directional lights;
     // indices [NUM_DIR_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHTS) are point lights;
@@ -69,7 +77,9 @@ float4 main(VertexOut pin) : SV_Target0
     pin.NormalW = normalize(pin.NormalW);
 
     // Vector from point being lit to eye. 
-    float3 toEyeW = normalize(gEyePosW - pin.PosW);
+    float3 toEyeW = gEyePosW - pin.PosW;
+    float distToEye = length(toEyeW);
+    toEyeW /= distToEye; // normalize
 
     // Indirect lighting.
     float4 ambient = gAmbientLight * diffuseAlbedo;
@@ -82,6 +92,13 @@ float4 main(VertexOut pin) : SV_Target0
 
     float4 litColor = ambient + directLight;
 
+    // 雾，如果雾的颜色alpha为0，则不处理
+    if (gFogColor.a > 0)
+    {
+        float fogAmount = saturate((distToEye - gFogStart) / gFogRange);
+        litColor = lerp(litColor, gFogColor, fogAmount);
+    }
+    
     // Common convention to take alpha from diffuse material.
     litColor.a = diffuseAlbedo.a;
 

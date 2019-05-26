@@ -29,6 +29,11 @@ __declspec(align(16)) struct PassConstants
     Vector3 eyePosW = { 0.0f, 0.0f, 0.0f };     // 观察点也就是摄像机位置
     Vector4 ambientLight = { 0.0f, 0.0f, 0.0f, 1.0f };
 
+    Vector4 FogColor = { 0.7f, 0.7f, 0.7f, 0.3f };
+    float gFogStart = 40.0f;
+    float gFogRange = 150.0f;
+    XMFLOAT2 pad;
+
     // Indices [0, NUM_DIR_LIGHTS) are directional lights;
     // indices [NUM_DIR_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHTS) are point lights;
     // indices [NUM_DIR_LIGHTS+NUM_POINT_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHT+NUM_SPOT_LIGHTS)

@@ -64,8 +64,9 @@ private:
     enum ePSOType
     {
         E_EPT_DEFAULT = 1,
-        E_EPT_WIREFRAME = 2,
-        E_EPT_ALPHATEST = 3,
+        E_EPT_WIREFRAME = 2,        // 只画线
+        E_EPT_ALPHATEST = 3,        // 绘制透明类物体，去掉背面剔除
+        E_EPT_TRANSPARENT = 4,      // 半透混合效果
     };
     std::unordered_map<int, GraphicsPSO> m_mapPSO;
 

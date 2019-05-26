@@ -95,6 +95,8 @@ void GameApp::Startup(void)
     GraphicsPSO transparentPSO = defaultPSO;
     auto blend = Graphics::BlendTraditional;
     blend.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+    // 习题5 只允许写入蓝和alpha通道
+    //blend.RenderTarget[0].RenderTargetWriteMask = (D3D12_COLOR_WRITE_ENABLE_BLUE | D3D12_COLOR_WRITE_ENABLE_ALPHA);
     transparentPSO.SetBlendState(blend);
     transparentPSO.Finalize();
     m_mapPSO[E_EPT_TRANSPARENT] = transparentPSO;

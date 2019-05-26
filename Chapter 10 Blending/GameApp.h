@@ -47,6 +47,7 @@ private:
     void renderLandAndWaves(GraphicsContext& gfxContext);
     void UpdateWaves(float deltaT);
     void AnimateMaterials(float deltaT);
+    void setShaderParam(GraphicsContext& gfxContext, renderItem& item);
 
 private:
     // 顶点结构体

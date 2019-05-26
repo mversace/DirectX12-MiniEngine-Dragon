@@ -396,20 +396,7 @@ void GameApp::renderShapes(GraphicsContext& gfxContext)
 
     for (auto& item : m_vecShapes)
     {
-        // 设置常量缓冲区数据
-        ObjectConstants obc;
-        obc.World = item.modelToWorld;
-        obc.texTransform = item.texTransform;
-        obc.matTransform = item.matTransform;
-        gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
-
-        gfxContext.SetDynamicDescriptor(3, 0, item.srv);
-
-        MaterialConstants mc;
-        mc.DiffuseAlbedo = { item.diffuseAlbedo.x, item.diffuseAlbedo.y, item.diffuseAlbedo.z, item.diffuseAlbedo.w };
-        mc.FresnelR0 = item.fresnelR0;
-        mc.Roughness = item.roughness;
-        gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
+        setShaderParam(gfxContext, item);
 
         // 绘制
         gfxContext.DrawIndexedInstanced(item.indexCount, 1, item.startIndex, item.baseVertex, 0);
@@ -571,20 +558,7 @@ void GameApp::renderLandAndWaves(GraphicsContext& gfxContext)
         // 设置索引视图
         gfxContext.SetIndexBuffer(m_IndexBufferLand.IndexBufferView());
 
-        // 设置常量缓冲区数据
-        ObjectConstants obc;
-        obc.World = m_renderItemLand.modelToWorld;
-        obc.texTransform = m_renderItemLand.texTransform;
-        obc.matTransform = m_renderItemLand.matTransform;
-        gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
-
-        gfxContext.SetDynamicDescriptor(3, 0, m_renderItemLand.srv);
-
-        MaterialConstants mc;
-        mc.DiffuseAlbedo = { m_renderItemLand.diffuseAlbedo.x, m_renderItemLand.diffuseAlbedo.y, m_renderItemLand.diffuseAlbedo.z, m_renderItemLand.diffuseAlbedo.w };
-        mc.FresnelR0 = m_renderItemLand.fresnelR0;
-        mc.Roughness = m_renderItemLand.roughness;
-        gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
+        setShaderParam(gfxContext, m_renderItemLand);
 
         // 绘制
         gfxContext.DrawIndexedInstanced(m_IndexBufferLand.GetElementCount(), 1, 0, 0, 0);
@@ -597,20 +571,7 @@ void GameApp::renderLandAndWaves(GraphicsContext& gfxContext)
 
         gfxContext.SetDynamicVB(0, m_verticesWaves.size(), sizeof(Vertex), m_verticesWaves.data());
 
-        // 设置常量缓冲区数据
-        ObjectConstants obc;
-        obc.World = m_renderItemWaves.modelToWorld;
-        obc.texTransform = m_renderItemWaves.texTransform;
-        obc.matTransform = Transpose(m_renderItemWaves.matTransform);
-        gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
-
-        gfxContext.SetDynamicDescriptor(3, 0, m_renderItemWaves.srv);
-
-        MaterialConstants mc;
-        mc.DiffuseAlbedo = { m_renderItemWaves.diffuseAlbedo.x, m_renderItemWaves.diffuseAlbedo.y, m_renderItemWaves.diffuseAlbedo.z, m_renderItemWaves.diffuseAlbedo.w };
-        mc.FresnelR0 = m_renderItemWaves.fresnelR0;
-        mc.Roughness = m_renderItemWaves.roughness;
-        gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
+        setShaderParam(gfxContext, m_renderItemWaves);
 
         // 绘制
         gfxContext.DrawIndexedInstanced(m_IndexBufferWaves.GetElementCount(), 1, 0, 0, 0);
@@ -623,20 +584,7 @@ void GameApp::renderLandAndWaves(GraphicsContext& gfxContext)
         // 设置索引视图
         gfxContext.SetIndexBuffer(m_IndexBufferBox.IndexBufferView());
 
-        // 设置常量缓冲区数据
-        ObjectConstants obc;
-        obc.World = m_renderItemBox.modelToWorld;
-        obc.texTransform = m_renderItemBox.texTransform;
-        obc.matTransform = m_renderItemBox.matTransform;
-        gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
-
-        gfxContext.SetDynamicDescriptor(3, 0, m_renderItemBox.srv);
-
-        MaterialConstants mc;
-        mc.DiffuseAlbedo = { m_renderItemBox.diffuseAlbedo.x, m_renderItemBox.diffuseAlbedo.y, m_renderItemBox.diffuseAlbedo.z, m_renderItemBox.diffuseAlbedo.w };
-        mc.FresnelR0 = m_renderItemBox.fresnelR0;
-        mc.Roughness = m_renderItemBox.roughness;
-        gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
+        setShaderParam(gfxContext, m_renderItemBox);
 
         // 绘制
         gfxContext.DrawIndexedInstanced(m_IndexBufferBox.GetElementCount(), 1, 0, 0, 0);
@@ -700,4 +648,22 @@ void GameApp::AnimateMaterials(float deltaT)
         tv -= 1.0f;
 
     m_renderItemWaves.matTransform.SetW({ tu, tv, 0.0f, 1.0f });
+}
+
+void GameApp::setShaderParam(GraphicsContext& gfxContext, renderItem& item)
+{
+    // 设置常量缓冲区数据
+    ObjectConstants obc;
+    obc.World = item.modelToWorld;
+    obc.texTransform = item.texTransform;
+    obc.matTransform = Transpose(item.matTransform);
+    gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
+
+    gfxContext.SetDynamicDescriptor(3, 0, item.srv);
+
+    MaterialConstants mc;
+    mc.DiffuseAlbedo = { item.diffuseAlbedo.x, item.diffuseAlbedo.y, item.diffuseAlbedo.z, item.diffuseAlbedo.w };
+    mc.FresnelR0 = item.fresnelR0;
+    mc.Roughness = item.roughness;
+    gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
 }

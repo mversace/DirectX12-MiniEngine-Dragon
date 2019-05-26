@@ -525,6 +525,7 @@ bool Graphics::Initialize(void)
 //     GraphRenderer::Initialize();
 //     ParticleEffects::Initialize(kMaxNativeWidth, kMaxNativeHeight);
 
+    s_FrameStartTick = SystemTime::GetCurrentTick();;
     return true;
 }
 

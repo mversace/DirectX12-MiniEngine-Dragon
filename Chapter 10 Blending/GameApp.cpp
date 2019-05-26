@@ -81,6 +81,15 @@ void GameApp::Startup(void)
     wireFramPSO.SetRasterizerState(raster);
     wireFramPSO.Finalize();
     m_mapPSO[E_EPT_WIREFRAME] = wireFramPSO;
+
+    // alpha test PSO
+    // 对于本例箱子一些面是透明的，要求显示到背面的东西
+    GraphicsPSO alphaTestPSO = defaultPSO;
+    raster = Graphics::RasterizerDefault;
+    raster.CullMode = D3D12_CULL_MODE_NONE;
+    alphaTestPSO.SetRasterizerState(raster);
+    alphaTestPSO.Finalize();
+    m_mapPSO[E_EPT_ALPHATEST] = alphaTestPSO;
 }
 
 void GameApp::Cleanup(void)
@@ -418,7 +427,7 @@ void GameApp::buildLandAndWaves()
     const ManagedTexture* MatTextures[3] = {};
     MatTextures[0] = TextureManager::LoadFromFile(L"grass", true);
     MatTextures[1] = TextureManager::LoadFromFile(L"water1", true);
-    MatTextures[2] = TextureManager::LoadFromFile(L"WoodCrate01", true);
+    MatTextures[2] = TextureManager::LoadFromFile(L"WireFence", true);
 
     GeometryGenerator geoGen;
     GeometryGenerator::MeshData grid = geoGen.CreateGrid(160.0f, 160.0f, 50, 50);
@@ -593,6 +602,8 @@ void GameApp::renderLandAndWaves(GraphicsContext& gfxContext)
         gfxContext.SetIndexBuffer(m_IndexBufferBox.IndexBufferView());
 
         setShaderParam(gfxContext, m_renderItemBox);
+
+        gfxContext.SetPipelineState(m_mapPSO[E_EPT_ALPHATEST]);
 
         // 绘制
         gfxContext.DrawIndexedInstanced(m_IndexBufferBox.GetElementCount(), 1, 0, 0, 0);

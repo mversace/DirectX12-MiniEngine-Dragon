@@ -64,11 +64,12 @@ private:
     enum ePSOType
     {
         E_EPT_DEFAULT = 1,
-        E_EPT_WIREFRAME = 2
+        E_EPT_WIREFRAME = 2,
+        E_EPT_ALPHATEST = 3,
     };
     std::unordered_map<int, GraphicsPSO> m_mapPSO;
 
-    bool m_bRenderShapes = true;
+    bool m_bRenderShapes = false;
     bool m_bRenderFill = true;
 
     // shapes

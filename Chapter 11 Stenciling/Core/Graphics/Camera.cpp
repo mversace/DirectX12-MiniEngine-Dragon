@@ -19,62 +19,36 @@ using namespace Math;
 
 void BaseCamera::SetLookDirection( Vector3 forward, Vector3 up )
 {
-    // Given, but ensure normalization
+    // 计算前方
     Scalar forwardLenSq = LengthSquare(forward);
-    forward = Select(forward * RecipSqrt(forwardLenSq), -Vector3(kZUnitVector), forwardLenSq < Scalar(0.000001f));
+    forward = Select(forward * RecipSqrt(forwardLenSq), Vector3(kZUnitVector), forwardLenSq < Scalar(0.000001f));
 
-    // Deduce a valid, orthogonal right vector
-    Vector3 right = Cross(forward, up);
+    // 根据提供的上和前方，计算右方
+    Vector3 right = Cross(up, forward);
     Scalar rightLenSq = LengthSquare(right);
-    right = Select(right * RecipSqrt(rightLenSq), Quaternion(Vector3(kYUnitVector), -XM_PIDIV2) * forward, rightLenSq < Scalar(0.000001f));
+    right = Select(right * RecipSqrt(rightLenSq), Cross(Vector3(kYUnitVector), forward), rightLenSq < Scalar(0.000001f));
 
-    // Compute actual up vector
-    up = Cross(right, forward);
+    // 正交化，计算实际的上方
+    up = Cross(forward, right);
 
-    // Finish constructing basis
-    m_Basis = Matrix3(right, up, -forward);
+    // 计算摄像机的转换矩阵
+    m_Basis = Matrix3(right, up, forward);
     m_CameraToWorld.SetRotation(Quaternion(m_Basis));
 }
 
 void BaseCamera::Update()
 {
-    m_PreviousViewProjMatrix = m_ViewProjMatrix;
-
+    // 计算视角变换矩阵，还没有看懂 m_CameraToWorld
     m_ViewMatrix = Matrix4(~m_CameraToWorld);
+    
+    // Matrix4中的*重载，故意反着写的。所以这里反着乘
+    // 计算视角投影转换矩阵。这样拿到世界矩阵再乘以这个值就可以算出最终的投影坐标了
     m_ViewProjMatrix = m_ProjMatrix * m_ViewMatrix;
-    m_ReprojectMatrix = m_PreviousViewProjMatrix * Invert(GetViewProjMatrix());
-
-    m_FrustumVS = Frustum( m_ProjMatrix );
-    m_FrustumWS = m_CameraToWorld * m_FrustumVS;
 }
-
 
 void Camera::UpdateProjMatrix( void )
 {
-    float Y = 1.0f / std::tanf( m_VerticalFOV * 0.5f );
-    float X = Y * m_AspectRatio;
+    DirectX::XMMATRIX mat = XMMatrixPerspectiveFovLH(m_VerticalFOV, m_AspectRatio, m_NearClip, m_FarClip);
 
-    float Q1, Q2;
-
-    // ReverseZ puts far plane at Z=0 and near plane at Z=1.  This is never a bad idea, and it's
-    // actually a great idea with F32 depth buffers to redistribute precision more evenly across
-    // the entire range.  It requires clearing Z to 0.0f and using a GREATER variant depth test.
-    // Some care must also be done to properly reconstruct linear W in a pixel shader from hyperbolic Z.
-    if (m_ReverseZ)
-    {
-        Q1 = m_NearClip / (m_FarClip - m_NearClip);
-        Q2 = Q1 * m_FarClip;
-    }
-    else
-    {
-        Q1 = m_FarClip / (m_NearClip - m_FarClip);
-        Q2 = Q1 * m_NearClip;
-    }
-
-    SetProjMatrix( Matrix4(
-        Vector4( X, 0.0f, 0.0f, 0.0f ),
-        Vector4( 0.0f, Y, 0.0f, 0.0f ),
-        Vector4( 0.0f, 0.0f, Q1, -1.0f ),
-        Vector4( 0.0f, 0.0f, Q2, 0.0f )
-        ) );
+    SetProjMatrix(Matrix4(mat));
 }

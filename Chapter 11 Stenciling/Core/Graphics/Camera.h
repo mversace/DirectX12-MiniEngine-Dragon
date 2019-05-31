@@ -45,6 +45,9 @@ namespace Math
         const Matrix4& GetViewMatrix() const { return m_ViewMatrix; }
         const Matrix4& GetProjMatrix() const { return m_ProjMatrix; }
         const Matrix4& GetViewProjMatrix() const { return m_ViewProjMatrix; }
+        const Matrix4& GetReprojectionMatrix() const { return m_ReprojectMatrix; }
+        const Frustum& GetViewSpaceFrustum() const { return m_FrustumVS; }
+        const Frustum& GetWorldSpaceFrustum() const { return m_FrustumWS; }
 
     protected:
 
@@ -57,19 +60,29 @@ namespace Math
         // Redundant data cached for faster lookups.
         Matrix3 m_Basis;
 
-        // 0 矩阵变换
-        // 1. 渲染目标从模型坐标系转到世界坐标系--->世界变换矩阵
-        // 2. 再从世界坐标系转到视角坐标系--->视角变换矩阵 m_ViewMatrix
-        // 3. 从视角坐标系转换到投影坐标系--->投影变换矩阵 m_ProjMatrix
-
-        // 世界坐标系转换到视角坐标系
+        // Transforms homogeneous coordinates from world space to view space.  In this case, view space is defined as +X is
+        // to the right, +Y is up, and -Z is forward.  This has to match what the projection matrix expects, but you might
+        // also need to know what the convention is if you work in view space in a shader.
         Matrix4 m_ViewMatrix;        // i.e. "World-to-View" matrix
 
-        // 视角坐标系转到投影坐标系
+        // The projection matrix transforms view space to clip space.  Once division by W has occurred, the final coordinates
+        // can be transformed by the viewport matrix to screen space.  The projection matrix is determined by the screen aspect 
+        // and camera field of view.  A projection matrix can also be orthographic.  In that case, field of view would be defined
+        // in linear units, not angles.
         Matrix4 m_ProjMatrix;        // i.e. "View-to-Projection" matrix
 
-        // 从世界坐标系直接转换到投影坐标系
+        // A concatenation of the view and projection matrices.
         Matrix4 m_ViewProjMatrix;    // i.e.  "World-To-Projection" matrix.
+
+        // The view-projection matrix from the previous frame
+        Matrix4 m_PreviousViewProjMatrix;
+
+        // Projects a clip-space coordinate to the previous frame (useful for temporal effects).
+        Matrix4 m_ReprojectMatrix;
+
+        Frustum m_FrustumVS;        // View-space view frustum
+        Frustum m_FrustumWS;        // World-space view frustum
+
     };
 
     class Camera : public BaseCamera
@@ -78,14 +91,16 @@ namespace Math
         Camera();
 
         // Controls the view-to-projection matrix
-        void SetPerspectiveMatrix( float verticalFovRadians, float aspectWidthOverHeight, float nearZClip, float farZClip );
+        void SetPerspectiveMatrix( float verticalFovRadians, float aspectHeightOverWidth, float nearZClip, float farZClip );
         void SetFOV( float verticalFovInRadians ) { m_VerticalFOV = verticalFovInRadians; UpdateProjMatrix(); }
-        void SetAspectRatio( float widthOverHeight) { m_AspectRatio = widthOverHeight; UpdateProjMatrix(); }
+        void SetAspectRatio( float heightOverWidth ) { m_AspectRatio = heightOverWidth; UpdateProjMatrix(); }
         void SetZRange( float nearZ, float farZ) { m_NearClip = nearZ; m_FarClip = farZ; UpdateProjMatrix(); }
+        void ReverseZ( bool enable ) { m_ReverseZ = enable; UpdateProjMatrix(); }
 
         float GetFOV() const { return m_VerticalFOV; }
         float GetNearClip() const { return m_NearClip; }
         float GetFarClip() const { return m_FarClip; }
+        float GetClearDepth() const { return m_ReverseZ ? 0.0f : 1.0f; }
 
     private:
 
@@ -95,6 +110,7 @@ namespace Math
         float m_AspectRatio;
         float m_NearClip;
         float m_FarClip;
+        bool m_ReverseZ;                // Invert near and far clip distances so that Z=0 is the far plane
     };
 
     inline void BaseCamera::SetEyeAtUp( Vector3 eye, Vector3 at, Vector3 up )
@@ -121,19 +137,21 @@ namespace Math
         m_Basis = Matrix3(m_CameraToWorld.GetRotation());
     }
 
-    inline Camera::Camera()
+    inline Camera::Camera() : m_ReverseZ(true)
     {
-        SetPerspectiveMatrix( XM_PIDIV4, 16.0f / 9.0f, 1.0f, 1000.0f );
+        SetPerspectiveMatrix( XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f );
     }
 
-    inline void Camera::SetPerspectiveMatrix( float verticalFovRadians, float aspectWidthOverHeight, float nearZClip, float farZClip )
+    inline void Camera::SetPerspectiveMatrix( float verticalFovRadians, float aspectHeightOverWidth, float nearZClip, float farZClip )
     {
         m_VerticalFOV = verticalFovRadians;
-        m_AspectRatio = aspectWidthOverHeight;
+        m_AspectRatio = aspectHeightOverWidth;
         m_NearClip = nearZClip;
         m_FarClip = farZClip;
 
         UpdateProjMatrix();
+
+        m_PreviousViewProjMatrix = m_ViewProjMatrix;
     }
 
 } // namespace Math

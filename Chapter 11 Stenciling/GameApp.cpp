@@ -7,7 +7,6 @@
 
 #include <DirectXColors.h>
 #include <fstream>
-#include <array>
 #include "GameInput.h"
 #include "CompiledShaders/defaultVS.h"
 #include "CompiledShaders/defaultPS.h"
@@ -19,11 +18,6 @@ namespace GameCore
 
 void GameApp::Startup(void)
 {
-    buildRoomGeo();
-    buildSkullGeo();
-    buildMaterials();
-    buildRenderItem();
-
     // 根签名
     m_RootSignature.Reset(4, 1);
     m_RootSignature.InitStaticSampler(0, Graphics::SamplerAnisoWrapDesc, D3D12_SHADER_VISIBILITY_PIXEL);
@@ -47,7 +41,7 @@ void GameApp::Startup(void)
     // 默认PSO
     GraphicsPSO defaultPSO;
     defaultPSO.SetRootSignature(m_RootSignature);
-    defaultPSO.SetRasterizerState(Graphics::RasterizerDefaultCw);
+    defaultPSO.SetRasterizerState(Graphics::RasterizerDefault);
     defaultPSO.SetBlendState(Graphics::BlendDisable);
     defaultPSO.SetDepthStencilState(Graphics::DepthStateReadWrite);
     defaultPSO.SetInputLayout(_countof(mInputLayout), mInputLayout);
@@ -63,9 +57,7 @@ void GameApp::Startup(void)
 
 void GameApp::Cleanup(void)
 {
-    m_mapGeometries.clear();
-    m_mapMaterial.clear();
-    m_mapPSO.clear();
+    
 }
 
 void GameApp::Update(float deltaT)
@@ -95,7 +87,7 @@ void GameApp::Update(float deltaT)
             // Update angles based on input to orbit camera around box.
             m_xRotate += (dx - m_xDiff);
             m_yRotate += (dy - m_yDiff);
-            m_yRotate = (std::max)(-0.0f + 0.1f, m_yRotate);
+            m_yRotate = (std::max)(-XM_PIDIV2 + 0.1f, m_yRotate);
             m_yRotate = (std::min)(XM_PIDIV2 - 0.1f, m_yRotate);
         }
 
@@ -123,12 +115,11 @@ void GameApp::Update(float deltaT)
     }
 
     // 调整摄像机位置
-    // 以(0, 0, -m_radius) 为初始位置
     float x = m_radius* cosf(m_yRotate)* sinf(m_xRotate);
     float y = m_radius* sinf(m_yRotate);
-    float z = -m_radius* cosf(m_yRotate)* cosf(m_xRotate);
+    float z = m_radius* cosf(m_yRotate)* cosf(m_xRotate);
 
-    m_Camera.SetEyeAtUp({ x, y, z }, Math::Vector3(Math::kZero), Math::Vector3(Math::kYUnitVector));
+    m_Camera.SetEyeAtUp({ x, y, z }, Vector3(kZero), Vector3(kYUnitVector));
     m_Camera.Update();
 
     m_ViewProjMatrix = m_Camera.GetViewProjMatrix();
@@ -169,214 +160,10 @@ void GameApp::RenderScene(void)
     // 设置顶点拓扑结构
     gfxContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    // 设置通用的常量缓冲区
-    PassConstants psc;
-    psc.viewProj = Transpose(m_ViewProjMatrix);
-    psc.eyePosW = m_Camera.GetPosition();
-    psc.ambientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
-    psc.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-    psc.Lights[0].Strength = { 0.6f, 0.6f, 0.6f };
-    psc.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
-    psc.Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
-    psc.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
-    psc.Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
-    gfxContext.SetDynamicConstantBufferView(1, sizeof(psc), &psc);
-
     // 开始绘制
-    drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Opaque]);
+    
 
     gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PRESENT);
 
-    gfxContext.Finish(true);
-}
-
-void GameApp::drawRenderItems(GraphicsContext& gfxContext, std::vector<std::unique_ptr<RenderItem>>& ritems)
-{
-    for (auto& item : ritems)
-    {
-        // 设置顶点
-        gfxContext.SetVertexBuffer(0, item->geo->vertexView);
-        // 设置索引
-        gfxContext.SetIndexBuffer(item->geo->indexView);
-
-        // 设置渲染目标的转换矩阵、纹理矩阵、纹理控制矩阵
-        ObjectConstants obc;
-        obc.World = item->modeToWorld;
-        obc.texTransform = item->texTransform;
-        obc.matTransform = Transpose(item->matTransform);
-        gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
-
-        // 设置渲染目标的纹理视图
-        gfxContext.SetDynamicDescriptor(3, 0, item->mat->srv);
-
-        // 设置渲染目标的纹理属性
-        MaterialConstants mc;
-        mc.DiffuseAlbedo = item->mat->diffuseAlbedo;
-        mc.FresnelR0 = item->mat->fresnelR0;
-        mc.Roughness = item->mat->roughness;
-        gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
-
-        gfxContext.DrawIndexed(item->IndexCount, item->StartIndexLocation, item->BaseVertexLocation);
-    }
-}
-
-void GameApp::buildRoomGeo()
-{
-    // Create and specify geometry.  For this sample we draw a floor
-    // and a wall with a mirror on it.  We put the floor, wall, and
-    // mirror geometry in one vertex buffer.
-    //
-    //   |--------------|
-    //   |              |
-    //   |----|----|----|
-    //   |Wall|Mirr|Wall|
-    //   |    | or |    |
-    //   /--------------/
-    //  /   Floor      /
-    // /--------------/
-
-    std::vector<Vertex> vertices =
-    {
-        // Floor: Observe we tile texture coordinates.
-        Vertex(-3.5f, 0.0f, -10.0f, 0.0f, 1.0f, 0.0f, 0.0f, 4.0f), // 0 
-        Vertex(-3.5f, 0.0f,   0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f),
-        Vertex(7.5f, 0.0f,   0.0f, 0.0f, 1.0f, 0.0f, 4.0f, 0.0f),
-        Vertex(7.5f, 0.0f, -10.0f, 0.0f, 1.0f, 0.0f, 4.0f, 4.0f),
-
-        // Wall: Observe we tile texture coordinates, and that we
-        // leave a gap in the middle for the mirror.
-        Vertex(-3.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 2.0f), // 4
-        Vertex(-3.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f),
-        Vertex(-2.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.5f, 0.0f),
-        Vertex(-2.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.5f, 2.0f),
-
-        Vertex(2.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 2.0f), // 8 
-        Vertex(2.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f),
-        Vertex(7.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 2.0f, 0.0f),
-        Vertex(7.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 2.0f, 2.0f),
-
-        Vertex(-3.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f), // 12
-        Vertex(-3.5f, 6.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f),
-        Vertex(7.5f, 6.0f, 0.0f, 0.0f, 0.0f, -1.0f, 6.0f, 0.0f),
-        Vertex(7.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 6.0f, 1.0f),
-
-        // Mirror
-        Vertex(-2.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f), // 16
-        Vertex(-2.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f),
-        Vertex(2.5f, 4.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f),
-        Vertex(2.5f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f)
-    };
-
-    std::vector<std::uint16_t> indices =
-    {
-        // Floor
-        0, 1, 2,
-        0, 2, 3,
-
-        // Walls
-        4, 5, 6,
-        4, 6, 7,
-
-        8, 9, 10,
-        8, 10, 11,
-
-        12, 13, 14,
-        12, 14, 15,
-
-        // Mirror
-        16, 17, 18,
-        16, 18, 19
-    };
-
-    SubmeshGeometry floorSubmesh;
-    floorSubmesh.IndexCount = 6;
-    floorSubmesh.StartIndexLocation = 0;
-    floorSubmesh.BaseVertexLocation = 0;
-
-    SubmeshGeometry wallSubmesh;
-    wallSubmesh.IndexCount = 18;
-    wallSubmesh.StartIndexLocation = 6;
-    wallSubmesh.BaseVertexLocation = 0;
-
-    SubmeshGeometry mirrorSubmesh;
-    mirrorSubmesh.IndexCount = 6;
-    mirrorSubmesh.StartIndexLocation = 24;
-    mirrorSubmesh.BaseVertexLocation = 0;
-
-    auto geo = std::make_unique<MeshGeometry>();
-    geo->name = "roomGeo";
-
-    geo->createVertex(L"roomGeo vertex", (UINT)vertices.size(), sizeof(Vertex), vertices.data());
-    geo->createIndex(L"roomGeo index", (UINT)indices.size(), sizeof(std::uint16_t), indices.data());
-
-    geo->geoMap["floor"] = floorSubmesh;
-    geo->geoMap["wall"] = wallSubmesh;
-    geo->geoMap["mirror"] = mirrorSubmesh;
-
-    m_mapGeometries[geo->name] = std::move(geo);
-}
-
-void GameApp::buildSkullGeo()
-{
-
-}
-
-void GameApp::buildMaterials()
-{
-    TextureManager::Initialize(L"Textures/");
-
-    auto bricks = std::make_unique<Material>();
-    bricks->name = "bricks";
-    bricks->diffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
-    bricks->fresnelR0 = { 0.05f, 0.05f, 0.05f };
-    bricks->roughness = 0.25f;
-    bricks->srv = TextureManager::LoadFromFile(L"bricks3", true)->GetSRV();
-
-    auto checkertile = std::make_unique<Material>();
-    checkertile->name = "checkertile";
-    checkertile->diffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
-    checkertile->fresnelR0 = { 0.07f, 0.07f, 0.07f };
-    checkertile->roughness = 0.3f;
-    checkertile->srv = TextureManager::LoadFromFile(L"checkboard", true)->GetSRV();
-
-    auto icemirror = std::make_unique<Material>();
-    icemirror->name = "icemirror";
-    icemirror->diffuseAlbedo = { 1.0f, 1.0f, 1.0f, 0.3f };
-    icemirror->fresnelR0 = { 0.1f, 0.1f, 0.1f };
-    icemirror->roughness = 0.5f;
-    icemirror->srv = TextureManager::LoadFromFile(L"ice", true)->GetSRV();
-
-    m_mapMaterial["bricks"] = std::move(bricks);
-    m_mapMaterial["checkertile"] = std::move(checkertile);
-    m_mapMaterial["icemirror"] = std::move(icemirror);
-}
-
-void GameApp::buildRenderItem()
-{
-    // 地板
-    auto floorRItem = std::make_unique<RenderItem>();
-    floorRItem->IndexCount = m_mapGeometries["roomGeo"]->geoMap["floor"].IndexCount;
-    floorRItem->StartIndexLocation = m_mapGeometries["roomGeo"]->geoMap["floor"].StartIndexLocation;
-    floorRItem->BaseVertexLocation = m_mapGeometries["roomGeo"]->geoMap["floor"].BaseVertexLocation;
-    floorRItem->geo = m_mapGeometries["roomGeo"].get();
-    floorRItem->mat = m_mapMaterial["checkertile"].get();
-    m_vecRenderItems[(int)RenderLayer::Opaque].push_back(std::move(floorRItem));
-
-    // 墙壁
-    auto wallRItem = std::make_unique<RenderItem>();
-    wallRItem->IndexCount = m_mapGeometries["roomGeo"]->geoMap["wall"].IndexCount;
-    wallRItem->StartIndexLocation = m_mapGeometries["roomGeo"]->geoMap["wall"].StartIndexLocation;
-    wallRItem->BaseVertexLocation = m_mapGeometries["roomGeo"]->geoMap["wall"].BaseVertexLocation;
-    wallRItem->geo = m_mapGeometries["roomGeo"].get();
-    wallRItem->mat = m_mapMaterial["bricks"].get();
-    m_vecRenderItems[(int)RenderLayer::Opaque].push_back(std::move(wallRItem));
-
-    // 镜子
-    auto mirrorRItem = std::make_unique<RenderItem>();
-    mirrorRItem->IndexCount = m_mapGeometries["roomGeo"]->geoMap["mirror"].IndexCount;
-    mirrorRItem->StartIndexLocation = m_mapGeometries["roomGeo"]->geoMap["mirror"].StartIndexLocation;
-    mirrorRItem->BaseVertexLocation = m_mapGeometries["roomGeo"]->geoMap["mirror"].BaseVertexLocation;
-    mirrorRItem->geo = m_mapGeometries["roomGeo"].get();
-    mirrorRItem->mat = m_mapMaterial["icemirror"].get();
-    m_vecRenderItems[(int)RenderLayer::Opaque].push_back(std::move(mirrorRItem));
+    gfxContext.Finish();
 }

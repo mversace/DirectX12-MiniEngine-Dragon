@@ -51,6 +51,7 @@ cbuffer cbMaterial : register(b2)
 {
     float4 gDiffuseAlbedo;
     float3 gFresnelR0;
+    float  gPad;
     float  gRoughness;
 };
 
@@ -93,7 +94,7 @@ float4 main(VertexOut pin) : SV_Target0
     float4 litColor = ambient + directLight;
 
     // 雾，如果雾的颜色alpha为0，则不处理
-    if (gFogColor.a > 0)
+    if (gFogColor.a > 0.01)
     {
         float fogAmount = saturate((distToEye - gFogStart) / gFogRange);
         litColor = lerp(litColor, gFogColor, fogAmount);

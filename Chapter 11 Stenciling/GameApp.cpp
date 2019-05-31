@@ -144,6 +144,34 @@ void GameApp::Update(float deltaT)
     m_MainScissor.top = 0;
     m_MainScissor.right = (LONG)Graphics::g_SceneColorBuffer.GetWidth();
     m_MainScissor.bottom = (LONG)Graphics::g_SceneColorBuffer.GetHeight();
+
+    updateSkull(deltaT);
+}
+
+void GameApp::updateSkull(float deltaT)
+{
+    if (GameInput::IsPressed(GameInput::kKey_a))
+        mSkullTranslation -= { 1.0f * deltaT, 0.0f, 0.0f };
+
+    if (GameInput::IsPressed(GameInput::kKey_d))
+        mSkullTranslation += { 1.0f * deltaT, 0.0f, 0.0f };
+
+    if (GameInput::IsPressed(GameInput::kKey_w))
+        mSkullTranslation += { 0.0f, 1.0f * deltaT, 0.0f };
+
+    if (GameInput::IsPressed(GameInput::kKey_s))
+        mSkullTranslation -= { 0.0f, 1.0f * deltaT, 0.0f };
+
+    // y坐标不允许低于地板
+    float y = (float)mSkullTranslation.GetY();
+    if (y < 0.0f)
+        mSkullTranslation.SetY(0.0f);
+
+    // 更新最新的skull世界矩阵
+    auto rotationMatrix = Math::AffineTransform::MakeYRotation(Math::XM_PIDIV2);
+    auto scallMatrix = Math::AffineTransform::MakeScale({ 0.45f, 0.45f, 0.45f });
+    auto translateMatrix = Math::AffineTransform::MakeTranslation(mSkullTranslation);
+    mSkullRitem->modeToWorld = Math::Transpose(Math::Matrix4(translateMatrix * scallMatrix * rotationMatrix));
 }
 
 void GameApp::RenderScene(void)
@@ -318,7 +346,59 @@ void GameApp::buildRoomGeo()
 
 void GameApp::buildSkullGeo()
 {
+    std::ifstream fin("Models/skull.txt");
 
+    if (!fin)
+    {
+        MessageBox(0, L"Models/skull.txt not found.", 0, 0);
+        return;
+    }
+
+    UINT vcount = 0;
+    UINT tcount = 0;
+    std::string ignore;
+
+    fin >> ignore >> vcount;
+    fin >> ignore >> tcount;
+    fin >> ignore >> ignore >> ignore >> ignore;
+
+    std::vector<Vertex> vertices(vcount);
+    for (UINT i = 0; i < vcount; ++i)
+    {
+        fin >> vertices[i].Pos.x >> vertices[i].Pos.y >> vertices[i].Pos.z;
+        fin >> vertices[i].Normal.x >> vertices[i].Normal.y >> vertices[i].Normal.z;
+
+        // Model does not have texture coordinates, so just zero them out.
+        vertices[i].TexC = { 0.0f, 0.0f };
+    }
+
+    fin >> ignore;
+    fin >> ignore;
+    fin >> ignore;
+
+    std::vector<std::int32_t> indices(3 * tcount);
+    for (UINT i = 0; i < tcount; ++i)
+    {
+        fin >> indices[i * 3 + 0] >> indices[i * 3 + 1] >> indices[i * 3 + 2];
+    }
+
+    fin.close();
+
+
+    auto geo = std::make_unique<MeshGeometry>();
+    geo->name = "skullGeo";
+
+    geo->createVertex(L"skull vertex", (UINT)vertices.size(), sizeof(Vertex), vertices.data());
+    geo->createIndex(L"skull index", (UINT)indices.size(), sizeof(std::int32_t), indices.data());
+
+    SubmeshGeometry submesh;
+    submesh.IndexCount = (UINT)indices.size();
+    submesh.StartIndexLocation = 0;
+    submesh.BaseVertexLocation = 0;
+
+    geo->geoMap["skull"] = submesh;
+
+    m_mapGeometries[geo->name] = std::move(geo);
 }
 
 void GameApp::buildMaterials()
@@ -346,9 +426,17 @@ void GameApp::buildMaterials()
     icemirror->roughness = 0.5f;
     icemirror->srv = TextureManager::LoadFromFile(L"ice", true)->GetSRV();
 
+    auto skullMat = std::make_unique<Material>();
+    skullMat->name = "skullMat";
+    skullMat->diffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
+    skullMat->fresnelR0 = { 0.05f, 0.05f, 0.05f };
+    skullMat->roughness = 0.3f;
+    skullMat->srv = TextureManager::LoadFromFile(L"white1x1", true)->GetSRV();
+
     m_mapMaterial["bricks"] = std::move(bricks);
     m_mapMaterial["checkertile"] = std::move(checkertile);
     m_mapMaterial["icemirror"] = std::move(icemirror);
+    m_mapMaterial["skullMat"] = std::move(skullMat);
 }
 
 void GameApp::buildRenderItem()
@@ -379,4 +467,14 @@ void GameApp::buildRenderItem()
     mirrorRItem->geo = m_mapGeometries["roomGeo"].get();
     mirrorRItem->mat = m_mapMaterial["icemirror"].get();
     m_vecRenderItems[(int)RenderLayer::Opaque].push_back(std::move(mirrorRItem));
+
+    // skull
+    auto skullRItem = std::make_unique<RenderItem>();
+    skullRItem->IndexCount = m_mapGeometries["skullGeo"]->geoMap["skull"].IndexCount;
+    skullRItem->StartIndexLocation = m_mapGeometries["skullGeo"]->geoMap["skull"].StartIndexLocation;
+    skullRItem->BaseVertexLocation = m_mapGeometries["skullGeo"]->geoMap["skull"].BaseVertexLocation;
+    skullRItem->geo = m_mapGeometries["skullGeo"].get();
+    skullRItem->mat = m_mapMaterial["skullMat"].get();
+    mSkullRitem = skullRItem.get();
+    m_vecRenderItems[(int)RenderLayer::Opaque].push_back(std::move(skullRItem));
 }

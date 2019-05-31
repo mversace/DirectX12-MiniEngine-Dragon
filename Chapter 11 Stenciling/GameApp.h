@@ -28,6 +28,8 @@ private:
     void buildMaterials();
     void buildRenderItem();
 
+    void updateSkull(float deltaT);
+
     void drawRenderItems(GraphicsContext& gfxContext, std::vector<std::unique_ptr<RenderItem>>& ritems);
 
 private:
@@ -59,6 +61,10 @@ private:
     };
     std::unordered_map<int, GraphicsPSO> m_mapPSO;
 
+    // render item skull point
+    RenderItem* mSkullRitem = nullptr;
+    Math::Vector3 mSkullTranslation = { 0.0f, 1.0f, -5.0f };
+
     // 摄像机
     // 以(0, 0, -m_radius) 为初始位置
     Math::Camera m_Camera;
@@ -70,7 +76,7 @@ private:
     float m_radius = 27.0f;
 
     // x方向弧度，摄像机的x坐标增加，则m_xRotate增加
-    float m_xRotate = 0.0f;
+    float m_xRotate = -Math::XM_PIDIV4 / 2.0f;
     float m_xLast = 0.0f;
     float m_xDiff = 0.0f;
 

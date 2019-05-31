@@ -34,6 +34,9 @@
 \x64
 *.user
 
+# nuget
+\packages
+
 # =========================
 # Operating System Files
 # =========================

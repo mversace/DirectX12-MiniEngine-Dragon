@@ -59,6 +59,29 @@ void GameApp::Startup(void)
 
     // 默认PSO
     m_mapPSO[E_EPT_DEFAULT] = defaultPSO;
+
+    // 模板PSO 禁止深度写入。如果通过了深度+模板测试，则在对应的模板中写入预设值
+    GraphicsPSO stencilTestPSO = defaultPSO;
+    stencilTestPSO.SetDepthStencilState(Graphics::StencilStateTest);
+    stencilTestPSO.Finalize();
+    m_mapPSO[E_EPT_STENCILTEST] = stencilTestPSO;
+
+    // 模板绘制PSO 通过上一步写入了值，这一步进行判断，如果当前像素的模板值等于预设值，则通过测试
+    // 因为要绘制镜子中的物体，所以需要顶点反向
+    GraphicsPSO stencilDrawPSO = defaultPSO;
+    stencilDrawPSO.SetRasterizerState(Graphics::RasterizerDefault);
+    stencilDrawPSO.SetDepthStencilState(Graphics::StencilStateTestEqual);
+    stencilDrawPSO.Finalize();
+    m_mapPSO[E_EPT_STENCILDRAW] = stencilDrawPSO;
+
+    // 透明PSO 绘制半透明的镜子
+    GraphicsPSO transparencyPSO = defaultPSO;
+    auto blend = Graphics::BlendTraditional;
+    // 目标的alpha用0，这样透过去的目标就不再变淡了
+    blend.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO; 
+    transparencyPSO.SetBlendState(blend);
+    transparencyPSO.Finalize();
+    m_mapPSO[E_EPT_TRANSPARENT] = transparencyPSO;
 }
 
 void GameApp::Cleanup(void)
@@ -66,6 +89,8 @@ void GameApp::Cleanup(void)
     m_mapGeometries.clear();
     m_mapMaterial.clear();
     m_mapPSO.clear();
+
+    m_vecAll.clear();
 }
 
 void GameApp::Update(float deltaT)
@@ -171,7 +196,14 @@ void GameApp::updateSkull(float deltaT)
     auto rotationMatrix = Math::AffineTransform::MakeYRotation(Math::XM_PIDIV2);
     auto scallMatrix = Math::AffineTransform::MakeScale({ 0.45f, 0.45f, 0.45f });
     auto translateMatrix = Math::AffineTransform::MakeTranslation(mSkullTranslation);
-    mSkullRitem->modeToWorld = Math::Transpose(Math::Matrix4(translateMatrix * scallMatrix * rotationMatrix));
+    auto world = Math::Matrix4(translateMatrix * scallMatrix * rotationMatrix);
+    mSkullRitem->modeToWorld = Math::Transpose(world);
+
+    // xy平面
+    XMVECTOR mirrorPlane = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+    XMMATRIX R = XMMatrixReflect(mirrorPlane);
+    mReflectedSkullRitem->modeToWorld = Math::Transpose(Math::Matrix4(R) * world);
+    mReflectedFloorlRItem->modeToWorld = Math::Transpose(Math::Matrix4(R));
 }
 
 void GameApp::RenderScene(void)
@@ -185,40 +217,49 @@ void GameApp::RenderScene(void)
     gfxContext.ClearColor(Graphics::g_SceneColorBuffer);
 
     gfxContext.TransitionResource(Graphics::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
-    gfxContext.ClearDepth(Graphics::g_SceneDepthBuffer);
+    gfxContext.ClearDepthAndStencil(Graphics::g_SceneDepthBuffer);
 
     gfxContext.SetRenderTarget(Graphics::g_SceneColorBuffer.GetRTV(), Graphics::g_SceneDepthBuffer.GetDSV());
-
-    // 设置渲染流水线
-    gfxContext.SetPipelineState(m_mapPSO[E_EPT_DEFAULT]);
 
     // 设置根签名
     gfxContext.SetRootSignature(m_RootSignature);
     // 设置顶点拓扑结构
     gfxContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    // 设置通用的常量缓冲区
-    PassConstants psc;
-    psc.viewProj = Transpose(m_ViewProjMatrix);
-    psc.eyePosW = m_Camera.GetPosition();
-    psc.ambientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
-    psc.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-    psc.Lights[0].Strength = { 0.6f, 0.6f, 0.6f };
-    psc.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
-    psc.Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
-    psc.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
-    psc.Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
-    gfxContext.SetDynamicConstantBufferView(1, sizeof(psc), &psc);
+    // 设置显示物体的常量缓冲区
+    setLightContantsBuff(gfxContext);
 
     // 开始绘制
+    // 渲染普通目标
+    gfxContext.SetPipelineState(m_mapPSO[E_EPT_DEFAULT]);
     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Opaque]);
+
+    // 设置模板写入PSO，对于镜子区域，进行模板+深度测试，通过的话，在模板缓冲区写入1
+    gfxContext.SetStencilRef(1);
+    gfxContext.SetPipelineState(m_mapPSO[E_EPT_STENCILTEST]);
+    drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Mirrors]);
+
+    // 设置镜中物体的常量缓冲区
+    setLightContantsBuff(gfxContext, true);
+
+    // 绘制镜中物体，只有通过了模板测试，也就是会处于镜中才会绘制
+    gfxContext.SetPipelineState(m_mapPSO[E_EPT_STENCILDRAW]);
+    drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Reflected]);
+    gfxContext.SetStencilRef(0);
+
+    // 设置显示物体的常量缓冲区
+    setLightContantsBuff(gfxContext);
+
+    // 绘制镜子
+    gfxContext.SetPipelineState(m_mapPSO[E_EPT_TRANSPARENT]);
+    drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Transparent]);
 
     gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PRESENT);
 
     gfxContext.Finish(true);
 }
 
-void GameApp::drawRenderItems(GraphicsContext& gfxContext, std::vector<std::unique_ptr<RenderItem>>& ritems)
+void GameApp::drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderItem*>& ritems)
 {
     for (auto& item : ritems)
     {
@@ -245,6 +286,40 @@ void GameApp::drawRenderItems(GraphicsContext& gfxContext, std::vector<std::uniq
         gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
 
         gfxContext.DrawIndexed(item->IndexCount, item->StartIndexLocation, item->BaseVertexLocation);
+    }
+}
+
+void GameApp::setLightContantsBuff(GraphicsContext& gfxContext, bool inMirror /* = false */)
+{
+    if (!inMirror)
+    {
+        // 设置通用的常量缓冲区
+        PassConstants psc;
+        psc.viewProj = Transpose(m_ViewProjMatrix);
+        psc.eyePosW = m_Camera.GetPosition();
+        psc.ambientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+        psc.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
+        psc.Lights[0].Strength = { 0.6f, 0.6f, 0.6f };
+        psc.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
+        psc.Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
+        psc.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
+        psc.Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
+        gfxContext.SetDynamicConstantBufferView(1, sizeof(psc), &psc);
+    }
+    else
+    {
+        // 设置镜子中的光照，偷个懒，直接设置了
+        PassConstants psc;
+        psc.viewProj = Transpose(m_ViewProjMatrix);
+        psc.eyePosW = m_Camera.GetPosition();
+        psc.ambientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+        psc.Lights[0].Direction = { 0.57735f, -0.57735f, -0.57735f };
+        psc.Lights[0].Strength = { 0.6f, 0.6f, 0.6f };
+        psc.Lights[1].Direction = { -0.57735f, -0.57735f, -0.57735f };
+        psc.Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
+        psc.Lights[2].Direction = { 0.0f, -0.707f, 0.707f };
+        psc.Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
+        gfxContext.SetDynamicConstantBufferView(1, sizeof(psc), &psc);
     }
 }
 
@@ -448,7 +523,7 @@ void GameApp::buildRenderItem()
     floorRItem->BaseVertexLocation = m_mapGeometries["roomGeo"]->geoMap["floor"].BaseVertexLocation;
     floorRItem->geo = m_mapGeometries["roomGeo"].get();
     floorRItem->mat = m_mapMaterial["checkertile"].get();
-    m_vecRenderItems[(int)RenderLayer::Opaque].push_back(std::move(floorRItem));
+    m_vecRenderItems[(int)RenderLayer::Opaque].push_back(floorRItem.get());
 
     // 墙壁
     auto wallRItem = std::make_unique<RenderItem>();
@@ -457,16 +532,7 @@ void GameApp::buildRenderItem()
     wallRItem->BaseVertexLocation = m_mapGeometries["roomGeo"]->geoMap["wall"].BaseVertexLocation;
     wallRItem->geo = m_mapGeometries["roomGeo"].get();
     wallRItem->mat = m_mapMaterial["bricks"].get();
-    m_vecRenderItems[(int)RenderLayer::Opaque].push_back(std::move(wallRItem));
-
-    // 镜子
-    auto mirrorRItem = std::make_unique<RenderItem>();
-    mirrorRItem->IndexCount = m_mapGeometries["roomGeo"]->geoMap["mirror"].IndexCount;
-    mirrorRItem->StartIndexLocation = m_mapGeometries["roomGeo"]->geoMap["mirror"].StartIndexLocation;
-    mirrorRItem->BaseVertexLocation = m_mapGeometries["roomGeo"]->geoMap["mirror"].BaseVertexLocation;
-    mirrorRItem->geo = m_mapGeometries["roomGeo"].get();
-    mirrorRItem->mat = m_mapMaterial["icemirror"].get();
-    m_vecRenderItems[(int)RenderLayer::Opaque].push_back(std::move(mirrorRItem));
+    m_vecRenderItems[(int)RenderLayer::Opaque].push_back(wallRItem.get());
 
     // skull
     auto skullRItem = std::make_unique<RenderItem>();
@@ -476,5 +542,42 @@ void GameApp::buildRenderItem()
     skullRItem->geo = m_mapGeometries["skullGeo"].get();
     skullRItem->mat = m_mapMaterial["skullMat"].get();
     mSkullRitem = skullRItem.get();
-    m_vecRenderItems[(int)RenderLayer::Opaque].push_back(std::move(skullRItem));
+    m_vecRenderItems[(int)RenderLayer::Opaque].push_back(skullRItem.get());
+
+    // 镜子
+    auto mirrorRItem = std::make_unique<RenderItem>();
+    mirrorRItem->IndexCount = m_mapGeometries["roomGeo"]->geoMap["mirror"].IndexCount;
+    mirrorRItem->StartIndexLocation = m_mapGeometries["roomGeo"]->geoMap["mirror"].StartIndexLocation;
+    mirrorRItem->BaseVertexLocation = m_mapGeometries["roomGeo"]->geoMap["mirror"].BaseVertexLocation;
+    mirrorRItem->geo = m_mapGeometries["roomGeo"].get();
+    mirrorRItem->mat = m_mapMaterial["icemirror"].get();
+    m_vecRenderItems[(int)RenderLayer::Mirrors].push_back(mirrorRItem.get());
+    m_vecRenderItems[(int)RenderLayer::Transparent].push_back(mirrorRItem.get());
+
+    // 镜子中的skull
+    auto reflectedSkullRItem = std::make_unique<RenderItem>();
+    reflectedSkullRItem->IndexCount = m_mapGeometries["skullGeo"]->geoMap["skull"].IndexCount;
+    reflectedSkullRItem->StartIndexLocation = m_mapGeometries["skullGeo"]->geoMap["skull"].StartIndexLocation;
+    reflectedSkullRItem->BaseVertexLocation = m_mapGeometries["skullGeo"]->geoMap["skull"].BaseVertexLocation;
+    reflectedSkullRItem->geo = m_mapGeometries["skullGeo"].get();
+    reflectedSkullRItem->mat = m_mapMaterial["skullMat"].get();
+    mReflectedSkullRitem = reflectedSkullRItem.get();
+    m_vecRenderItems[(int)RenderLayer::Reflected].push_back(reflectedSkullRItem.get());
+
+    // 镜子中的floor
+    auto reflectedFloorlRItem = std::make_unique<RenderItem>();
+    reflectedFloorlRItem->IndexCount = m_mapGeometries["roomGeo"]->geoMap["floor"].IndexCount;
+    reflectedFloorlRItem->StartIndexLocation = m_mapGeometries["roomGeo"]->geoMap["floor"].StartIndexLocation;
+    reflectedFloorlRItem->BaseVertexLocation = m_mapGeometries["roomGeo"]->geoMap["floor"].BaseVertexLocation;
+    reflectedFloorlRItem->geo = m_mapGeometries["roomGeo"].get();
+    reflectedFloorlRItem->mat = m_mapMaterial["checkertile"].get();
+    mReflectedFloorlRItem = reflectedFloorlRItem.get();
+    m_vecRenderItems[(int)RenderLayer::Reflected].push_back(reflectedFloorlRItem.get());
+
+    m_vecAll.push_back(std::move(floorRItem));
+    m_vecAll.push_back(std::move(wallRItem));
+    m_vecAll.push_back(std::move(skullRItem));
+    m_vecAll.push_back(std::move(mirrorRItem));
+    m_vecAll.push_back(std::move(reflectedSkullRItem));
+    m_vecAll.push_back(std::move(reflectedFloorlRItem));
 }

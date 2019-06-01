@@ -210,6 +210,8 @@ public:
     void SetScissor( UINT left, UINT top, UINT right, UINT bottom );
     void SetViewportAndScissor( const D3D12_VIEWPORT& vp, const D3D12_RECT& rect );
     void SetViewportAndScissor( UINT x, UINT y, UINT w, UINT h );
+    void SetStencilRef(UINT StencilRef);
+    void SetBlendFactor(Color BlendFactor);
     void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY Topology);
 
     // 设置流水线状态
@@ -340,6 +342,16 @@ inline void GraphicsContext::SetViewportAndScissor(UINT x, UINT y, UINT w, UINT 
 inline void GraphicsContext::SetScissor(UINT left, UINT top, UINT right, UINT bottom)
 {
     SetScissor(CD3DX12_RECT(left, top, right, bottom));
+}
+
+inline void GraphicsContext::SetStencilRef(UINT ref)
+{
+    m_CommandList->OMSetStencilRef(ref);
+}
+
+inline void GraphicsContext::SetBlendFactor(Color BlendFactor)
+{
+    m_CommandList->OMSetBlendFactor(BlendFactor.GetPtr());
 }
 
 inline void GraphicsContext::SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY Topology)

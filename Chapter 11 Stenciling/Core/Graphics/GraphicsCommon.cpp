@@ -57,8 +57,9 @@ namespace Graphics
     D3D12_DEPTH_STENCIL_DESC DepthStateDisabled;
     D3D12_DEPTH_STENCIL_DESC DepthStateReadWrite;
     D3D12_DEPTH_STENCIL_DESC DepthStateReadOnly;
-    D3D12_DEPTH_STENCIL_DESC DepthStateReadOnlyReversed;
     D3D12_DEPTH_STENCIL_DESC DepthStateTestEqual;
+    D3D12_DEPTH_STENCIL_DESC StencilStateTest;
+    D3D12_DEPTH_STENCIL_DESC StencilStateTestEqual;
 
 //     CommandSignature DispatchIndirectCommandSignature(1);
 //     CommandSignature DrawIndirectCommandSignature(1);
@@ -164,11 +165,18 @@ void Graphics::InitializeCommonState(void)
     DepthStateReadOnly = DepthStateReadWrite;
     DepthStateReadOnly.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 
-    DepthStateReadOnlyReversed = DepthStateReadOnly;
-    DepthStateReadOnlyReversed.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-
     DepthStateTestEqual = DepthStateReadOnly;
     DepthStateTestEqual.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
+
+    StencilStateTest = DepthStateReadOnly;
+    StencilStateTest.StencilEnable = TRUE;
+    StencilStateTest.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+    StencilStateTest.BackFace = StencilStateTest.FrontFace;
+    
+    StencilStateTestEqual = DepthStateReadWrite;
+    StencilStateTestEqual.StencilEnable = TRUE;
+    StencilStateTestEqual.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
+    StencilStateTestEqual.BackFace = StencilStateTestEqual.FrontFace;
 
     D3D12_BLEND_DESC alphaBlend = {};
     alphaBlend.IndependentBlendEnable = FALSE;

@@ -29,7 +29,7 @@ namespace Graphics
 
 #define T2X_COLOR_FORMAT DXGI_FORMAT_R10G10B10A2_UNORM
 #define HDR_MOTION_FORMAT DXGI_FORMAT_R16G16B16A16_FLOAT
-#define DSV_FORMAT DXGI_FORMAT_D32_FLOAT
+#define DSV_FORMAT DXGI_FORMAT_D24_UNORM_S8_UINT
 
 void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t bufferHeight )
 {

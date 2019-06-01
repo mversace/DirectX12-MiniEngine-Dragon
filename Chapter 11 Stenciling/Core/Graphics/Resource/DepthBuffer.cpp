@@ -25,6 +25,8 @@ void DepthBuffer::Create( const std::wstring& Name, uint32_t Width, uint32_t Hei
 
     D3D12_CLEAR_VALUE ClearValue = {};
     ClearValue.Format = Format;
+    ClearValue.DepthStencil.Depth = 1.0f;
+    ClearValue.DepthStencil.Stencil = 0;
     CreateTextureResource(Graphics::g_Device, Name, ResourceDesc, ClearValue, VidMemPtr);
     CreateDerivedViews(Graphics::g_Device, Format);
 }
@@ -36,6 +38,8 @@ void DepthBuffer::Create( const std::wstring& Name, uint32_t Width, uint32_t Hei
 
     D3D12_CLEAR_VALUE ClearValue = {};
     ClearValue.Format = Format;
+    ClearValue.DepthStencil.Depth = 1.0f;
+    ClearValue.DepthStencil.Stencil = 0;
     CreateTextureResource(Graphics::g_Device, Name, ResourceDesc, ClearValue, VidMemPtr);
     CreateDerivedViews(Graphics::g_Device, Format);
 }
@@ -123,6 +127,7 @@ void DepthBuffer::CreateDerivedViews( ID3D12Device* Device, DXGI_FORMAT Format )
             m_hStencilSRV = Graphics::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
         SRVDesc.Format = stencilReadFormat;
+        SRVDesc.Texture2D.PlaneSlice = 1;
         Device->CreateShaderResourceView( Resource, &SRVDesc, m_hStencilSRV );
     }
 }

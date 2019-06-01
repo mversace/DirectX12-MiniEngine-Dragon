@@ -30,7 +30,8 @@ private:
 
     void updateSkull(float deltaT);
 
-    void drawRenderItems(GraphicsContext& gfxContext, std::vector<std::unique_ptr<RenderItem>>& ritems);
+    void drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderItem*>& ritems);
+    void setLightContantsBuff(GraphicsContext& gfxContext, bool inMirror = false);
 
 private:
     // 几何结构map
@@ -48,7 +49,8 @@ private:
         Shadow,
         Count
     };
-    std::vector<std::unique_ptr<RenderItem>> m_vecRenderItems[(int)RenderLayer::Count];
+    std::vector<RenderItem*> m_vecRenderItems[(int)RenderLayer::Count];
+    std::vector<std::unique_ptr<RenderItem>> m_vecAll;
 
 private:
     // 根签名
@@ -57,13 +59,20 @@ private:
     // 渲染流水线
     enum ePSOType
     {
-        E_EPT_DEFAULT = 1
+        E_EPT_DEFAULT = 1,
+        E_EPT_STENCILTEST = 2,
+        E_EPT_STENCILDRAW = 3,
+        E_EPT_TRANSPARENT = 4,
     };
     std::unordered_map<int, GraphicsPSO> m_mapPSO;
 
     // render item skull point
     RenderItem* mSkullRitem = nullptr;
     Math::Vector3 mSkullTranslation = { 0.0f, 1.0f, -5.0f };
+
+    // 镜中的skull
+    RenderItem* mReflectedSkullRitem = nullptr;
+    RenderItem* mReflectedFloorlRItem = nullptr;
 
     // 摄像机
     // 以(0, 0, -m_radius) 为初始位置

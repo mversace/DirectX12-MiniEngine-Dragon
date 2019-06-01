@@ -56,8 +56,11 @@ namespace Graphics
     extern D3D12_DEPTH_STENCIL_DESC DepthStateDisabled;
     extern D3D12_DEPTH_STENCIL_DESC DepthStateReadWrite;
     extern D3D12_DEPTH_STENCIL_DESC DepthStateReadOnly;
-    extern D3D12_DEPTH_STENCIL_DESC DepthStateReadOnlyReversed;
     extern D3D12_DEPTH_STENCIL_DESC DepthStateTestEqual;
+    // 模板测试。禁止深度写入，只有通过了深度测试+模板测试的才写入值
+    extern D3D12_DEPTH_STENCIL_DESC StencilStateTest;
+    // 模板测试。只有模板值相同才允许写入
+    extern D3D12_DEPTH_STENCIL_DESC StencilStateTestEqual;
 
 //     extern CommandSignature DispatchIndirectCommandSignature;
 //     extern CommandSignature DrawIndirectCommandSignature;

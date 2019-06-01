@@ -60,15 +60,17 @@ private:
     enum ePSOType
     {
         E_EPT_DEFAULT = 1,
-        E_EPT_STENCILTEST = 2,
-        E_EPT_STENCILDRAW = 3,
-        E_EPT_TRANSPARENT = 4,
+        E_EPT_STENCILTEST,
+        E_EPT_STENCILDRAW,
+        E_EPT_TRANSPARENT,
+        E_EPT_SHADOW,
     };
     std::unordered_map<int, GraphicsPSO> m_mapPSO;
 
     // render item skull point
     RenderItem* mSkullRitem = nullptr;
     Math::Vector3 mSkullTranslation = { 0.0f, 1.0f, -5.0f };
+    RenderItem* mShadowedSkullRItem = nullptr;
 
     // ¾µÖÐµÄskull
     RenderItem* mReflectedSkullRitem = nullptr;

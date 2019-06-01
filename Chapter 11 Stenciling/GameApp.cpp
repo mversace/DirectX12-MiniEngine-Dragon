@@ -82,6 +82,20 @@ void GameApp::Startup(void)
     transparencyPSO.SetBlendState(blend);
     transparencyPSO.Finalize();
     m_mapPSO[E_EPT_TRANSPARENT] = transparencyPSO;
+
+    // 影子PSO
+    GraphicsPSO shadowPSO = defaultPSO;
+    auto blendStruct = Graphics::BlendTraditional;
+    blendStruct.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+    shadowPSO.SetBlendState(blendStruct);
+    auto depthStruct = Graphics::DepthStateReadWrite;
+    depthStruct.StencilEnable = true;
+    depthStruct.FrontFace.StencilPassOp = D3D12_STENCIL_OP_INCR;
+    depthStruct.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
+    depthStruct.BackFace = depthStruct.FrontFace;
+    shadowPSO.SetDepthStencilState(depthStruct);
+    shadowPSO.Finalize();
+    m_mapPSO[E_EPT_SHADOW] = shadowPSO;
 }
 
 void GameApp::Cleanup(void)
@@ -199,6 +213,15 @@ void GameApp::updateSkull(float deltaT)
     auto world = Math::Matrix4(translateMatrix * scallMatrix * rotationMatrix);
     mSkullRitem->modeToWorld = Math::Transpose(world);
 
+    // 影子 xz平面
+    XMVECTOR shadowPlane = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+    XMVECTOR toMainLight = { -0.57735f, 0.57735f, -0.57735f };
+    auto S = Math::Matrix4(XMMatrixShadow(shadowPlane, toMainLight));
+    auto shadowOffsetY = Math::Matrix4(Math::AffineTransform::MakeTranslation({ 0.0f, 0.001f, 0.0f }));
+    auto shadowWorld = shadowOffsetY * S * world;
+    mShadowedSkullRItem->modeToWorld = Math::Transpose(shadowWorld);
+
+    // 镜中世界
     // xy平面
     XMVECTOR mirrorPlane = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
     XMMATRIX R = XMMatrixReflect(mirrorPlane);
@@ -253,6 +276,10 @@ void GameApp::RenderScene(void)
     // 绘制镜子
     gfxContext.SetPipelineState(m_mapPSO[E_EPT_TRANSPARENT]);
     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Transparent]);
+
+    // 绘制现实世界的影子
+    gfxContext.SetPipelineState(m_mapPSO[E_EPT_SHADOW]);
+    drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Shadow]);
 
     gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PRESENT);
 
@@ -508,10 +535,18 @@ void GameApp::buildMaterials()
     skullMat->roughness = 0.3f;
     skullMat->srv = TextureManager::LoadFromFile(L"white1x1", true)->GetSRV();
 
+    auto shadowMat = std::make_unique<Material>();
+    shadowMat->name = "skullMat";
+    shadowMat->diffuseAlbedo = { 0.0f, 0.0f, 0.0f, 0.5f };
+    shadowMat->fresnelR0 = { 0.001f, 0.001f, 0.001f };
+    shadowMat->roughness = 0.0f;
+    shadowMat->srv = TextureManager::LoadFromFile(L"white1x1", true)->GetSRV();
+
     m_mapMaterial["bricks"] = std::move(bricks);
     m_mapMaterial["checkertile"] = std::move(checkertile);
     m_mapMaterial["icemirror"] = std::move(icemirror);
     m_mapMaterial["skullMat"] = std::move(skullMat);
+    m_mapMaterial["shadowMat"] = std::move(shadowMat);
 }
 
 void GameApp::buildRenderItem()
@@ -544,6 +579,13 @@ void GameApp::buildRenderItem()
     mSkullRitem = skullRItem.get();
     m_vecRenderItems[(int)RenderLayer::Opaque].push_back(skullRItem.get());
 
+    // skull影子
+    auto shadowedSkullRitem = std::make_unique<RenderItem>();
+    *shadowedSkullRitem = *skullRItem;
+    shadowedSkullRitem->mat = m_mapMaterial["shadowMat"].get();
+    mShadowedSkullRItem = shadowedSkullRitem.get();
+    m_vecRenderItems[(int)RenderLayer::Shadow].push_back(shadowedSkullRitem.get());
+
     // 镜子
     auto mirrorRItem = std::make_unique<RenderItem>();
     mirrorRItem->IndexCount = m_mapGeometries["roomGeo"]->geoMap["mirror"].IndexCount;
@@ -556,27 +598,20 @@ void GameApp::buildRenderItem()
 
     // 镜子中的skull
     auto reflectedSkullRItem = std::make_unique<RenderItem>();
-    reflectedSkullRItem->IndexCount = m_mapGeometries["skullGeo"]->geoMap["skull"].IndexCount;
-    reflectedSkullRItem->StartIndexLocation = m_mapGeometries["skullGeo"]->geoMap["skull"].StartIndexLocation;
-    reflectedSkullRItem->BaseVertexLocation = m_mapGeometries["skullGeo"]->geoMap["skull"].BaseVertexLocation;
-    reflectedSkullRItem->geo = m_mapGeometries["skullGeo"].get();
-    reflectedSkullRItem->mat = m_mapMaterial["skullMat"].get();
+    *reflectedSkullRItem = *skullRItem;
     mReflectedSkullRitem = reflectedSkullRItem.get();
     m_vecRenderItems[(int)RenderLayer::Reflected].push_back(reflectedSkullRItem.get());
 
     // 镜子中的floor
     auto reflectedFloorlRItem = std::make_unique<RenderItem>();
-    reflectedFloorlRItem->IndexCount = m_mapGeometries["roomGeo"]->geoMap["floor"].IndexCount;
-    reflectedFloorlRItem->StartIndexLocation = m_mapGeometries["roomGeo"]->geoMap["floor"].StartIndexLocation;
-    reflectedFloorlRItem->BaseVertexLocation = m_mapGeometries["roomGeo"]->geoMap["floor"].BaseVertexLocation;
-    reflectedFloorlRItem->geo = m_mapGeometries["roomGeo"].get();
-    reflectedFloorlRItem->mat = m_mapMaterial["checkertile"].get();
+    *reflectedFloorlRItem = *floorRItem;
     mReflectedFloorlRItem = reflectedFloorlRItem.get();
     m_vecRenderItems[(int)RenderLayer::Reflected].push_back(reflectedFloorlRItem.get());
 
     m_vecAll.push_back(std::move(floorRItem));
     m_vecAll.push_back(std::move(wallRItem));
     m_vecAll.push_back(std::move(skullRItem));
+    m_vecAll.push_back(std::move(shadowedSkullRitem));
     m_vecAll.push_back(std::move(mirrorRItem));
     m_vecAll.push_back(std::move(reflectedSkullRItem));
     m_vecAll.push_back(std::move(reflectedFloorlRItem));

@@ -104,6 +104,10 @@ void GameApp::Startup(void)
 
     // ¹«¸æ°åPSO
     GraphicsPSO billboardPSO = defaultPSO;
+    billboardPSO.SetRasterizerState(Graphics::RasterizerDefaultCwMsaa);
+    blend = Graphics::BlendDisable;
+    blend.AlphaToCoverageEnable = true;
+    billboardPSO.SetBlendState(blend);
     D3D12_INPUT_ELEMENT_DESC mInputLayoutBB[] =
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },

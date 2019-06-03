@@ -265,34 +265,16 @@ void GameApp::drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderIte
     }
 }
 
-void GameApp::setLightContantsBuff(GraphicsContext& gfxContext, bool inMirror /* = false */)
+void GameApp::setLightContantsBuff(GraphicsContext& gfxContext)
 {
-    if (!inMirror)
-    {
-        // 设置通用的常量缓冲区
-        PassConstants psc;
-        psc.viewProj = Transpose(m_ViewProjMatrix);
-        psc.eyePosW = m_Camera.GetPosition();
-        psc.ambientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
-        psc.Lights[0].Direction = { 0.0f, -1.0f, 0.0f };
-        psc.Lights[0].Strength = { 1.0f, 1.0f, 0.9f };
-        gfxContext.SetDynamicConstantBufferView(1, sizeof(psc), &psc);
-    }
-    else
-    {
-        // 设置镜子中的光照，偷个懒，直接设置了
-        PassConstants psc;
-        psc.viewProj = Transpose(m_ViewProjMatrix);
-        psc.eyePosW = m_Camera.GetPosition();
-        psc.ambientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
-        psc.Lights[0].Direction = { 0.57735f, -0.57735f, -0.57735f };
-        psc.Lights[0].Strength = { 0.6f, 0.6f, 0.6f };
-        psc.Lights[1].Direction = { -0.57735f, -0.57735f, -0.57735f };
-        psc.Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
-        psc.Lights[2].Direction = { 0.0f, -0.707f, 0.707f };
-        psc.Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
-        gfxContext.SetDynamicConstantBufferView(1, sizeof(psc), &psc);
-    }
+    // 设置通用的常量缓冲区
+    PassConstants psc;
+    psc.viewProj = Transpose(m_ViewProjMatrix);
+    psc.eyePosW = m_Camera.GetPosition();
+    psc.ambientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+    psc.Lights[0].Direction = { 0.0f, -1.0f, -1.0f };
+    psc.Lights[0].Strength = { 1.0f, 1.0f, 0.9f };
+    gfxContext.SetDynamicConstantBufferView(1, sizeof(psc), &psc);
 }
 
 void GameApp::buildLandGeo()

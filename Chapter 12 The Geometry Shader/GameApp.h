@@ -31,7 +31,7 @@ private:
     void buildRenderItem();
 
     void drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderItem*>& ritems);
-    void setLightContantsBuff(GraphicsContext& gfxContext, bool inMirror = false);
+    void setLightContantsBuff(GraphicsContext& gfxContext);
 
 private:
     float GetHillsHeight(float x, float z) const;

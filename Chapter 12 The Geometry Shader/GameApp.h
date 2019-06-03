@@ -27,6 +27,7 @@ private:
     void buildLandGeo();
     void buildBoxGeo();
     void buildWavesGeo();
+    void buildTreeGeo();
     void buildMaterials();
     void buildRenderItem();
 
@@ -51,6 +52,7 @@ private:
         Opaque = 0,
         AlphaTest,
         Transparent,
+        AlphaTestedTreeSprites,
         Count
     };
     std::vector<RenderItem*> m_vecRenderItems[(int)RenderLayer::Count];
@@ -66,12 +68,14 @@ private:
         E_EPT_DEFAULT = 1,
         E_EPT_ALPHATEST,
         E_EPT_TRANSPARENT,
+        E_EPT_BILLBOARD,
     };
     std::unordered_map<int, GraphicsPSO> m_mapPSO;
 
     // 水波纹
     Waves m_waves{ 128, 128, 1.0f, 0.03f, 4.0f, 0.2f };
     RenderItem* m_pWaveRItem = nullptr;
+    std::vector<Vertex>* m_pWavesVec = nullptr;
 
     // 摄像机
     // 以(0, 0, -m_radius) 为初始位置
@@ -81,7 +85,7 @@ private:
     D3D12_RECT m_MainScissor;
 
     // 半径
-    float m_radius = 27.0f;
+    float m_radius = 120.0f;
 
     // x方向弧度，摄像机的x坐标增加，则m_xRotate增加
     float m_xRotate = -Math::XM_PIDIV4 / 2.0f;

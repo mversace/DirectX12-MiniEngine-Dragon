@@ -12,6 +12,9 @@
 #include "GameInput.h"
 #include "CompiledShaders/defaultVS.h"
 #include "CompiledShaders/defaultPS.h"
+#include "CompiledShaders/billboardVS.h"
+#include "CompiledShaders/billboardGS.h"
+#include "CompiledShaders/billboardPS.h"
 
 namespace GameCore
 {
@@ -39,8 +42,11 @@ void GameApp::Startup(void)
     buildLandGeo();
     buildBoxGeo();
     buildWavesGeo();
+    buildTreeGeo();
     buildMaterials();
     buildRenderItem();
+
+    Graphics::g_SceneColorBuffer.SetClearColor({ 0.7f, 0.7f, 0.7f });
 
     // 根签名
     m_RootSignature.Reset(4, 1);
@@ -95,6 +101,21 @@ void GameApp::Startup(void)
     transparencyPSO.SetBlendState(blend);
     transparencyPSO.Finalize();
     m_mapPSO[E_EPT_TRANSPARENT] = transparencyPSO;
+
+    // 公告板PSO
+    GraphicsPSO billboardPSO = defaultPSO;
+    D3D12_INPUT_ELEMENT_DESC mInputLayoutBB[] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "SIZE", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    };
+    billboardPSO.SetInputLayout(_countof(mInputLayoutBB), mInputLayoutBB);
+    billboardPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT);
+    billboardPSO.SetVertexShader(g_pbillboardVS, sizeof(g_pbillboardVS));
+    billboardPSO.SetGeometryShader(g_pbillboardGS, sizeof(g_pbillboardGS));
+    billboardPSO.SetPixelShader(g_pbillboardPS, sizeof(g_pbillboardPS));
+    billboardPSO.Finalize();
+    m_mapPSO[E_EPT_BILLBOARD] = billboardPSO;
 }
 
 void GameApp::Cleanup(void)
@@ -203,9 +224,7 @@ void GameApp::RenderScene(void)
 
     // 设置根签名
     gfxContext.SetRootSignature(m_RootSignature);
-    // 设置顶点拓扑结构
-    gfxContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
+   
     // 设置显示物体的常量缓冲区
     setLightContantsBuff(gfxContext);
 
@@ -217,6 +236,10 @@ void GameApp::RenderScene(void)
     // 绘制箱子
     gfxContext.SetPipelineState(m_mapPSO[E_EPT_ALPHATEST]);
     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::AlphaTest]);
+
+    // 绘制公告板的树
+    gfxContext.SetPipelineState(m_mapPSO[E_EPT_BILLBOARD]);
+    drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::AlphaTestedTreeSprites]);
 
     // 绘制水体
     gfxContext.SetPipelineState(m_mapPSO[E_EPT_TRANSPARENT]);
@@ -243,6 +266,9 @@ void GameApp::drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderIte
         
         // 设置索引
         gfxContext.SetIndexBuffer(item->geo->indexView);
+
+        // 设置顶点拓扑结构
+        gfxContext.SetPrimitiveTopology(item->PrimitiveType);
 
         // 设置渲染目标的转换矩阵、纹理矩阵、纹理控制矩阵
         ObjectConstants obc;
@@ -390,6 +416,51 @@ void GameApp::buildWavesGeo()
 
     geo->geoMap["wave"] = submesh;
 
+    m_pWavesVec = &geo->vecVertex;
+
+    m_mapGeometries[geo->name] = std::move(geo);
+}
+
+void GameApp::buildTreeGeo()
+{
+    struct TreeSpriteVertex
+    {
+        XMFLOAT3 Pos;
+        XMFLOAT2 Size;
+    };
+
+    static const int treeCount = 16;
+    std::vector<TreeSpriteVertex> vertices(treeCount);
+    for (UINT i = 0; i < treeCount; ++i)
+    {
+        float x = RandF(-45.0f, 45.0f);
+        float z = RandF(-45.0f, 45.0f);
+        float y = GetHillsHeight(x, z);
+
+        // Move tree slightly above land height.
+        y += 8.0f;
+
+        vertices[i].Pos = XMFLOAT3(x, y, z);
+        vertices[i].Size = XMFLOAT2(20.0f, 20.0f);
+    }
+
+    std::vector<std::uint16_t> indices(treeCount);
+    for (int i = 0; i < treeCount; ++i)
+        indices[i] = i;
+
+    auto geo = std::make_unique<MeshGeometry>();
+    geo->name = "treeSpritesGeo";
+
+    geo->createVertex(L"treeGeo vertex", (UINT)vertices.size(), sizeof(TreeSpriteVertex), vertices.data());
+    geo->createIndex(L"treeGeo index", (UINT)indices.size(), sizeof(std::uint16_t), indices.data());
+
+    SubmeshGeometry submesh;
+    submesh.IndexCount = (UINT)indices.size();
+    submesh.StartIndexLocation = 0;
+    submesh.BaseVertexLocation = 0;
+
+    geo->geoMap["points"] = submesh;
+
     m_mapGeometries[geo->name] = std::move(geo);
 }
 
@@ -418,9 +489,17 @@ void GameApp::buildMaterials()
     wireFence->roughness = 0.25f;
     wireFence->srv = TextureManager::LoadFromFile(L"WireFence", true)->GetSRV();
 
+    auto treeSprites = std::make_unique<Material>();
+    treeSprites->name = "treeSprites";
+    treeSprites->diffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
+    treeSprites->fresnelR0 = { 0.01f, 0.01f, 0.01f };
+    treeSprites->roughness = 0.125f;
+    treeSprites->srv = TextureManager::LoadFromFile(L"treeArray2", true)->GetSRV();
+
     m_mapMaterial[grass->name] = std::move(grass);
     m_mapMaterial[water->name] = std::move(water);
     m_mapMaterial[wireFence->name] = std::move(wireFence);
+    m_mapMaterial[treeSprites->name] = std::move(treeSprites);
 }
 
 void GameApp::buildRenderItem()
@@ -456,10 +535,19 @@ void GameApp::buildRenderItem()
     m_pWaveRItem = waterRItem.get();
     m_vecRenderItems[(int)RenderLayer::Transparent].push_back(waterRItem.get());
 
+    auto treeSpritesRitem = std::make_unique<RenderItem>();
+    treeSpritesRitem->IndexCount = m_mapGeometries["treeSpritesGeo"]->geoMap["points"].IndexCount;
+    treeSpritesRitem->StartIndexLocation = m_mapGeometries["treeSpritesGeo"]->geoMap["points"].StartIndexLocation;
+    treeSpritesRitem->BaseVertexLocation = m_mapGeometries["treeSpritesGeo"]->geoMap["points"].BaseVertexLocation;
+    treeSpritesRitem->geo = m_mapGeometries["treeSpritesGeo"].get();
+    treeSpritesRitem->mat = m_mapMaterial["treeSprites"].get();
+    treeSpritesRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
+    m_vecRenderItems[(int)RenderLayer::AlphaTestedTreeSprites].push_back(treeSpritesRitem.get());
 
     m_vecAll.push_back(std::move(landRItem));
     m_vecAll.push_back(std::move(boxRItem));
     m_vecAll.push_back(std::move(waterRItem));
+    m_vecAll.push_back(std::move(treeSpritesRitem));
 }
 
 float GameApp::GetHillsHeight(float x, float z) const
@@ -508,7 +596,7 @@ void GameApp::UpdateWaves(float deltaT)
     // Update the wave vertex buffer with the new solution.
     for (int i = 0; i < m_waves.VertexCount(); ++i)
     {
-        auto p = &m_mapGeometries["wavesGeo"]->vecVertex[i];
+        auto p = &m_pWavesVec->at(i);
 
         p->Pos = m_waves.Position(i);
         p->Normal = m_waves.Normal(i);

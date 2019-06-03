@@ -835,6 +835,15 @@
     <FxCompile Include="Core\Shaders\defaultPS.hlsl">
       <Filter>Shaders\default</Filter>
     </FxCompile>
+    <FxCompile Include="Core\Shaders\billboardVS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\billboardGS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\billboardPS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Core\Graphics\Command\readme_command.txt">

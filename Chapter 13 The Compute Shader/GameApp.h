@@ -41,6 +41,9 @@ private:
     void AnimateMaterials(float deltaT);
 
 private:
+    void testComputerWork();
+
+private:
     // 几何结构map
     std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> m_mapGeometries;
     // 纹理map

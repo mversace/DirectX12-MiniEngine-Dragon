@@ -10,11 +10,13 @@
 #include <fstream>
 #include <array>
 #include "GameInput.h"
+#include "ReadbackBuffer.h"
 #include "CompiledShaders/defaultVS.h"
 #include "CompiledShaders/defaultPS.h"
 #include "CompiledShaders/billboardVS.h"
 #include "CompiledShaders/billboardGS.h"
 #include "CompiledShaders/billboardPS.h"
+#include "CompiledShaders/vecAdd.h"
 
 static float RandF()
 {
@@ -40,6 +42,7 @@ void GameApp::Startup(void)
     buildTreeGeo();
     buildMaterials();
     buildRenderItem();
+    testComputerWork();
 
     Graphics::g_SceneColorBuffer.SetClearColor({ 0.7f, 0.7f, 0.7f });
 
@@ -611,4 +614,94 @@ void GameApp::AnimateMaterials(float deltaT)
         tv -= 1.0f;
 
     m_pWaveRItem->matTransform.SetW({ tu, tv, 0.0f, 1.0f });
+}
+
+void GameApp::testComputerWork()
+{
+    // 数据数量
+    int nCount = 32;
+
+    // 0. 准备输入数据
+    struct Data
+    {
+        XMFLOAT3 v1;
+        XMFLOAT2 v2;
+    };
+    std::vector<Data> dataA(nCount);
+    std::vector<Data> dataB(nCount);
+    for (int i = 0; i < nCount; ++i)
+    {
+        dataA[i].v1 = XMFLOAT3(i, i, i);
+        dataA[i].v2 = XMFLOAT2(i, 0);
+
+        dataB[i].v1 = XMFLOAT3(-i, i, 0.0f);
+        dataB[i].v2 = XMFLOAT2(0, -i);
+    }
+
+    // 1. 创建两个默认缓冲区，用于CS的输入
+    StructuredBuffer bufferA, bufferB;
+    bufferA.Create(L"bufferA", nCount, sizeof(Data), dataA.data());
+    bufferB.Create(L"bufferB", nCount, sizeof(Data), dataB.data());
+
+    // 2. 创建一个输出缓冲区，用于保存CS的输出
+    ByteAddressBuffer bufferOut;
+    bufferOut.Create(L"bufferOut", nCount, sizeof(Data));
+
+    // 3. 创建一个回写缓冲区，用于接收上边的数据
+    ReadbackBuffer bufferRB;
+    bufferRB.Create(L"bufferRB", nCount, sizeof(Data));
+
+    // 4. 创建对应的根签名
+    RootSignature rootSignature;
+    rootSignature.Reset(3, 0);
+    rootSignature[0].InitAsBufferSRV(0);
+    rootSignature[1].InitAsBufferSRV(1);
+    rootSignature[2].InitAsBufferUAV(0);
+    rootSignature.Finalize(L"test CS");
+
+    // 5. 创建PSO
+    ComputePSO pso;
+    pso.SetRootSignature(rootSignature);
+    pso.SetComputeShader(g_pvecAdd, sizeof(g_pvecAdd));
+    pso.Finalize();
+
+    // 6. 创建一个命令的上下文环境准备计算
+    ComputeContext& context = ComputeContext::Begin(L"test CS");
+
+    // 7. 设置根签名、渲染流水线、输入、输出
+    context.SetRootSignature(rootSignature);
+    context.SetPipelineState(pso);
+    context.SetBufferSRV(0, bufferA);
+    context.SetBufferSRV(1, bufferB);
+
+    context.TransitionResource(bufferOut, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    context.SetBufferUAV(2, bufferOut);
+
+    // 8. 分派任务 需要32个线程，每组有32个线程，也就是需要1个线程组
+    context.Dispatch1D(32, 32);
+
+    // 9. 拷贝数据命令
+    context.CopyBuffer(bufferRB, bufferOut);
+
+    // 10. 开始执行
+    context.Finish(true);
+
+    // 11. 将返回的数据写入文件
+    Data* mappedData = (Data*)bufferRB.Map();
+
+    std::ofstream fout("results.txt");
+
+    for (int i = 0; i < nCount; ++i)
+    {
+        fout << "(" << mappedData[i].v1.x << ", " << mappedData[i].v1.y << ", " << mappedData[i].v1.z <<
+            ", " << mappedData[i].v2.x << ", " << mappedData[i].v2.y << ")" << std::endl;
+    }
+
+    bufferRB.Unmap();
+
+    // end. 释放缓冲区
+    bufferA.Destroy();
+    bufferB.Destroy();
+    bufferOut.Destroy();
+    bufferRB.Destroy();
 }

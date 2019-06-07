@@ -877,6 +877,9 @@
     <FxCompile Include="Core\Shaders\billboardPS.hlsl">
       <Filter>Shaders\default</Filter>
     </FxCompile>
+    <FxCompile Include="Core\Shaders\vecAdd.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Core\Graphics\Command\readme_command.txt">

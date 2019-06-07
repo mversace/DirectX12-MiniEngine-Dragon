@@ -348,6 +348,12 @@
     <FxCompile Include="Core\Shaders\GenerateMipsLinearOddCS.hlsl" />
     <FxCompile Include="Core\Shaders\GenerateMipsLinearOddXCS.hlsl" />
     <FxCompile Include="Core\Shaders\GenerateMipsLinearOddYCS.hlsl" />
+    <FxCompile Include="Core\Shaders\vecAdd.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    </FxCompile>
     <None Include="Core\Shaders\LightingUtil.hlsl">
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </EntryPointName>

@@ -62,8 +62,8 @@ namespace Graphics
     // 模板测试。只有模板值相同才允许写入
     extern D3D12_DEPTH_STENCIL_DESC StencilStateTestEqual;
 
-//     extern CommandSignature DispatchIndirectCommandSignature;
-//     extern CommandSignature DrawIndirectCommandSignature;
+    extern CommandSignature DispatchIndirectCommandSignature;
+    extern CommandSignature DrawIndirectCommandSignature;
 
     void InitializeCommonState(void);
     void DestroyCommonState(void);

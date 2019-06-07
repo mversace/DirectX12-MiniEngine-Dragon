@@ -24,7 +24,7 @@ class DepthBuffer;
 class GraphicsPSO;
 class CommandContext;
 class CommandListManager;
-//class CommandSignature;
+class CommandSignature;
 class ContextManager;
 
 namespace Graphics

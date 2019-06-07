@@ -112,6 +112,7 @@
     <ClCompile Include="Core\Graphics\GpuTimeManager.cpp" />
     <ClCompile Include="Core\Graphics\GraphicsCommon.cpp" />
     <ClCompile Include="Core\Graphics\GraphicsCore.cpp" />
+    <ClCompile Include="Core\Graphics\Pipeline\CommandSignature.cpp" />
     <ClCompile Include="Core\Graphics\Pipeline\PipelineState.cpp" />
     <ClCompile Include="Core\Graphics\Pipeline\RootSignature.cpp" />
     <ClCompile Include="Core\Graphics\Pipeline\SamplerManager.cpp" />
@@ -155,6 +156,7 @@
     <ClInclude Include="Core\Graphics\GpuTimeManager.h" />
     <ClInclude Include="Core\Graphics\GraphicsCommon.h" />
     <ClInclude Include="Core\Graphics\GraphicsCore.h" />
+    <ClInclude Include="Core\Graphics\Pipeline\CommandSignature.h" />
     <ClInclude Include="Core\Graphics\Pipeline\PipelineState.h" />
     <ClInclude Include="Core\Graphics\Pipeline\RootSignature.h" />
     <ClInclude Include="Core\Graphics\Pipeline\SamplerManager.h" />

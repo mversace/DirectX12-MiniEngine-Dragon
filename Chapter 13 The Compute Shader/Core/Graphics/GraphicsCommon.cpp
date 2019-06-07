@@ -14,7 +14,7 @@
 #include "pch.h"
 #include "GraphicsCommon.h"
 #include "SamplerManager.h"
-//#include "CommandSignature.h"
+#include "CommandSignature.h"
 //#include "BitonicSort.h"
 
 namespace Graphics
@@ -61,8 +61,8 @@ namespace Graphics
     D3D12_DEPTH_STENCIL_DESC StencilStateTest;
     D3D12_DEPTH_STENCIL_DESC StencilStateTestEqual;
 
-//     CommandSignature DispatchIndirectCommandSignature(1);
-//     CommandSignature DrawIndirectCommandSignature(1);
+    CommandSignature DispatchIndirectCommandSignature(1);
+    CommandSignature DrawIndirectCommandSignature(1);
 }
 
 // namespace BitonicSort
@@ -205,19 +205,19 @@ void Graphics::InitializeCommonState(void)
     alphaBlend.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
     BlendTraditionalAdditive = alphaBlend;
 
-//     DispatchIndirectCommandSignature[0].Dispatch();
-//     DispatchIndirectCommandSignature.Finalize();
-// 
-//     DrawIndirectCommandSignature[0].Draw();
-//     DrawIndirectCommandSignature.Finalize();
+    DispatchIndirectCommandSignature[0].Dispatch();
+    DispatchIndirectCommandSignature.Finalize();
+
+    DrawIndirectCommandSignature[0].Draw();
+    DrawIndirectCommandSignature.Finalize();
 //
 //    BitonicSort::Initialize();
 }
 
 void Graphics::DestroyCommonState(void)
 {
-//     DispatchIndirectCommandSignature.Destroy();
-//     DrawIndirectCommandSignature.Destroy();
+    DispatchIndirectCommandSignature.Destroy();
+    DrawIndirectCommandSignature.Destroy();
     
 //    BitonicSort::Shutdown();
 }

@@ -26,7 +26,7 @@
 #include "CommandContext.h"
 #include "CommandListManager.h"
 #include "RootSignature.h"
-//#include "CommandSignature.h"
+#include "CommandSignature.h"
 // #include "ParticleEffectManager.h"
 #include "GraphRenderer.h"
 // #include "TemporalEffects.h"

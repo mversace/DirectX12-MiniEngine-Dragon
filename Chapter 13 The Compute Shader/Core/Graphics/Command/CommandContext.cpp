@@ -390,6 +390,33 @@ void CommandContext::BeginResourceTransition(GpuResource & Resource, D3D12_RESOU
         FlushResourceBarriers();
 }
 
+void CommandContext::InsertUAVBarrier(GpuResource& Resource, bool FlushImmediate)
+{
+    ASSERT(m_NumBarriersToFlush < 16, "Exceeded arbitrary limit on buffered barriers");
+    D3D12_RESOURCE_BARRIER& BarrierDesc = m_ResourceBarrierBuffer[m_NumBarriersToFlush++];
+
+    BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+    BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    BarrierDesc.UAV.pResource = Resource.GetResource();
+
+    if (FlushImmediate)
+        FlushResourceBarriers();
+}
+
+void CommandContext::InsertAliasBarrier(GpuResource& Before, GpuResource& After, bool FlushImmediate)
+{
+    ASSERT(m_NumBarriersToFlush < 16, "Exceeded arbitrary limit on buffered barriers");
+    D3D12_RESOURCE_BARRIER& BarrierDesc = m_ResourceBarrierBuffer[m_NumBarriersToFlush++];
+
+    BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_ALIASING;
+    BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    BarrierDesc.Aliasing.pResourceBefore = Before.GetResource();
+    BarrierDesc.Aliasing.pResourceAfter = After.GetResource();
+
+    if (FlushImmediate)
+        FlushResourceBarriers();
+}
+
 void CommandContext::PIXBeginEvent(const wchar_t* label)
 {
 #ifdef RELEASE
@@ -466,6 +493,21 @@ void GraphicsContext::ClearDepthAndStencil( DepthBuffer& Target )
     m_CommandList->ClearDepthStencilView(Target.GetDSV(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, Target.GetClearDepth(), Target.GetClearStencil(), 0, nullptr);
 }
 
+void GraphicsContext::BeginQuery(ID3D12QueryHeap* QueryHeap, D3D12_QUERY_TYPE Type, UINT HeapIndex)
+{
+    m_CommandList->BeginQuery(QueryHeap, Type, HeapIndex);
+}
+
+void GraphicsContext::EndQuery(ID3D12QueryHeap* QueryHeap, D3D12_QUERY_TYPE Type, UINT HeapIndex)
+{
+    m_CommandList->EndQuery(QueryHeap, Type, HeapIndex);
+}
+
+void GraphicsContext::ResolveQueryData(ID3D12QueryHeap* QueryHeap, D3D12_QUERY_TYPE Type, UINT StartIndex, UINT NumQueries, ID3D12Resource* DestinationBuffer, UINT64 DestinationBufferOffset)
+{
+    m_CommandList->ResolveQueryData(QueryHeap, Type, StartIndex, NumQueries, DestinationBuffer, DestinationBufferOffset);
+}
+
 void GraphicsContext::SetViewportAndScissor( const D3D12_VIEWPORT& vp, const D3D12_RECT& rect )
 {
     ASSERT(rect.left < rect.right && rect.top < rect.bottom);
@@ -528,4 +570,37 @@ inline void GraphicsContext::SetDynamicIB(size_t IndexCount, const uint16_t * In
     IBView.Format = DXGI_FORMAT_R16_UINT;
 
     m_CommandList->IASetIndexBuffer(&IBView);
+}
+
+
+
+ComputeContext& ComputeContext::Begin(const std::wstring& ID, bool Async)
+{
+    ComputeContext& NewContext = g_ContextManager.AllocateContext(
+        Async ? D3D12_COMMAND_LIST_TYPE_COMPUTE : D3D12_COMMAND_LIST_TYPE_DIRECT)->GetComputeContext();
+    NewContext.SetID(ID);
+    if (ID.length() > 0)
+        EngineProfiling::BeginBlock(ID, &NewContext);
+    return NewContext;
+}
+
+void ComputeContext::ClearUAV(GpuBuffer& Target)
+{
+    // After binding a UAV, we can get a GPU handle that is required to clear it as a UAV (because it essentially runs
+    // a shader to set all of the values).
+    D3D12_GPU_DESCRIPTOR_HANDLE GpuVisibleHandle = m_DynamicViewDescriptorHeap.UploadDirect(Target.GetUAV());
+    const UINT ClearColor[4] = {};
+    m_CommandList->ClearUnorderedAccessViewUint(GpuVisibleHandle, Target.GetUAV(), Target.GetResource(), ClearColor, 0, nullptr);
+}
+
+void ComputeContext::ClearUAV(ColorBuffer& Target)
+{
+    // After binding a UAV, we can get a GPU handle that is required to clear it as a UAV (because it essentially runs
+    // a shader to set all of the values).
+    D3D12_GPU_DESCRIPTOR_HANDLE GpuVisibleHandle = m_DynamicViewDescriptorHeap.UploadDirect(Target.GetUAV());
+    CD3DX12_RECT ClearRect(0, 0, (LONG)Target.GetWidth(), (LONG)Target.GetHeight());
+
+    //TODO: My Nvidia card is not clearing UAVs with either Float or Uint variants.
+    const float* ClearColor = Target.GetClearColor().GetPtr();
+    m_CommandList->ClearUnorderedAccessViewFloat(GpuVisibleHandle, Target.GetUAV(), Target.GetResource(), ClearColor, 1, &ClearRect);
 }

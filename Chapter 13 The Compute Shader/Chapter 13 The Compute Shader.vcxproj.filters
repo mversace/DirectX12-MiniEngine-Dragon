@@ -204,6 +204,9 @@
     <ClCompile Include="Core\Graphics\GpuTimeManager.cpp">
       <Filter>Core\Graphics</Filter>
     </ClCompile>
+    <ClCompile Include="Core\Graphics\Pipeline\CommandSignature.cpp">
+      <Filter>Core\Graphics\Pipeline</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Math\BoundingPlane.h">
@@ -370,6 +373,9 @@
     </ClInclude>
     <ClInclude Include="Core\Graphics\GpuTimeManager.h">
       <Filter>Core\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Pipeline\CommandSignature.h">
+      <Filter>Core\Graphics\Pipeline</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

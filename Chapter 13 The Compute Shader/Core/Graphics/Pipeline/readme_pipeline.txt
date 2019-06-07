@@ -10,4 +10,5 @@
 
 文件说明：
 --RootSignature 根签名
+--CommandSignature 命令签名
 --PipelineState 流水线状态器

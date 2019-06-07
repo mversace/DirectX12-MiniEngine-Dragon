@@ -54,7 +54,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>Core;Core\Graphics;Core\Graphics\Command;Core\Graphics\DescriptorHeap;Core\Graphics\Pipeline;Core\Graphics\Resource;Core\Graphics\Texture;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Core;Core\Graphics;Core\Graphics\Command;Core\Graphics\DescriptorHeap;Core\Graphics\Pipeline;Core\Graphics\Resource;Core\Graphics\Texture;Core\Graphics\Renderer;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -78,7 +78,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>Core;Core\Graphics;Core\Graphics\Command;Core\Graphics\DescriptorHeap;Core\Graphics\Pipeline;Core\Graphics\Resource;Core\Graphics\Texture;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Core;Core\Graphics;Core\Graphics\Command;Core\Graphics\DescriptorHeap;Core\Graphics\Pipeline;Core\Graphics\Resource;Core\Graphics\Texture;Core\Graphics\Renderer;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -97,6 +97,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Core\CameraController.cpp" />
+    <ClCompile Include="Core\EngineProfiling.cpp" />
     <ClCompile Include="Core\EngineTuning.cpp" />
     <ClCompile Include="Core\FileUtility.cpp" />
     <ClCompile Include="Core\GameCore.cpp" />
@@ -108,11 +109,14 @@
     <ClCompile Include="Core\Graphics\Command\CommandListManager.cpp" />
     <ClCompile Include="Core\Graphics\DescriptorHeap\DescriptorHeap.cpp" />
     <ClCompile Include="Core\Graphics\DescriptorHeap\DynamicDescriptorHeap.cpp" />
+    <ClCompile Include="Core\Graphics\GpuTimeManager.cpp" />
     <ClCompile Include="Core\Graphics\GraphicsCommon.cpp" />
     <ClCompile Include="Core\Graphics\GraphicsCore.cpp" />
     <ClCompile Include="Core\Graphics\Pipeline\PipelineState.cpp" />
     <ClCompile Include="Core\Graphics\Pipeline\RootSignature.cpp" />
     <ClCompile Include="Core\Graphics\Pipeline\SamplerManager.cpp" />
+    <ClCompile Include="Core\Graphics\Renderer\GraphRenderer.cpp" />
+    <ClCompile Include="Core\Graphics\Renderer\TextRenderer.cpp" />
     <ClCompile Include="Core\Graphics\Resource\BufferManager.cpp" />
     <ClCompile Include="Core\Graphics\Resource\ColorBuffer.cpp" />
     <ClCompile Include="Core\Graphics\Resource\DepthBuffer.cpp" />
@@ -135,6 +139,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\CameraController.h" />
+    <ClInclude Include="Core\EngineProfiling.h" />
     <ClInclude Include="Core\EngineTuning.h" />
     <ClInclude Include="Core\FileUtility.h" />
     <ClInclude Include="Core\GameCore.h" />
@@ -147,11 +152,14 @@
     <ClInclude Include="Core\Graphics\d3dx12.h" />
     <ClInclude Include="Core\Graphics\DescriptorHeap\DescriptorHeap.h" />
     <ClInclude Include="Core\Graphics\DescriptorHeap\DynamicDescriptorHeap.h" />
+    <ClInclude Include="Core\Graphics\GpuTimeManager.h" />
     <ClInclude Include="Core\Graphics\GraphicsCommon.h" />
     <ClInclude Include="Core\Graphics\GraphicsCore.h" />
     <ClInclude Include="Core\Graphics\Pipeline\PipelineState.h" />
     <ClInclude Include="Core\Graphics\Pipeline\RootSignature.h" />
     <ClInclude Include="Core\Graphics\Pipeline\SamplerManager.h" />
+    <ClInclude Include="Core\Graphics\Renderer\GraphRenderer.h" />
+    <ClInclude Include="Core\Graphics\Renderer\TextRenderer.h" />
     <ClInclude Include="Core\Graphics\Resource\BufferManager.h" />
     <ClInclude Include="Core\Graphics\Resource\ColorBuffer.h" />
     <ClInclude Include="Core\Graphics\Resource\DepthBuffer.h" />
@@ -450,11 +458,13 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\zlib-vc140-static-64.1.2.11\build\native\zlib-vc140-static-64.targets" Condition="Exists('..\packages\zlib-vc140-static-64.1.2.11\build\native\zlib-vc140-static-64.targets')" />
+    <Import Project="..\packages\WinPixEventRuntime.1.0.190604001\build\WinPixEventRuntime.targets" Condition="Exists('..\packages\WinPixEventRuntime.1.0.190604001\build\WinPixEventRuntime.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>这台计算机上缺少此项目引用的 NuGet 程序包。使用“NuGet 程序包还原”可下载这些程序包。有关更多信息，请参见 http://go.microsoft.com/fwlink/?LinkID=322105。缺少的文件是 {0}。</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\zlib-vc140-static-64.1.2.11\build\native\zlib-vc140-static-64.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\zlib-vc140-static-64.1.2.11\build\native\zlib-vc140-static-64.targets'))" />
+    <Error Condition="!Exists('..\packages\WinPixEventRuntime.1.0.190604001\build\WinPixEventRuntime.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\WinPixEventRuntime.1.0.190604001\build\WinPixEventRuntime.targets'))" />
   </Target>
 </Project>

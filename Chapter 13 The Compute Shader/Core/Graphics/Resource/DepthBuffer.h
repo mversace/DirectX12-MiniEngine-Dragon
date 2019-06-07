@@ -29,6 +29,7 @@ class EsramAllocator;
 class DepthBuffer : public PixelBuffer
 {
 public:
+    // meng 改为左手坐标系，深度默认值为改为1.0f
     DepthBuffer( float ClearDepth = 1.0f, uint8_t ClearStencil = 0 )
         : m_ClearDepth(ClearDepth), m_ClearStencil(ClearStencil) 
     {

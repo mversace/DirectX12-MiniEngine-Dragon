@@ -13,12 +13,12 @@
 
 
 #include "pch.h"
-// #include "TextRenderer.h"
+#include "TextRenderer.h"
 #include "GameInput.h"
 #include "Color.h"
 #include "GraphicsCore.h"
 #include "CommandContext.h"
-// #include "GraphRenderer.h"
+#include "GraphRenderer.h"
 
 using namespace std;
 using namespace Math;
@@ -95,62 +95,62 @@ VariableGroup VariableGroup::sm_RootGroup;
 
 void VariableGroup::Display( TextContext& Text, float leftMargin, EngineVar* highlightedTweak )
 {
-//     Text.SetLeftMargin(leftMargin);
-//     Text.SetCursorX(leftMargin);
-// 
-//     for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
-//     {
-//         
-//         if (iter->second == highlightedTweak)
-//         {
-//             Text.SetColor( Color(1.0f, 1.0f, 0.25f) );
-//             float temp1 = Text.GetCursorY() - EngineTuning::s_ScrollBottomTrigger;
-//             float temp2 = Text.GetCursorY() - EngineTuning::s_ScrollTopTrigger;
-//             if (temp1 > 0.0f)
-//             {
-//                 EngineTuning::s_ScrollOffset += 0.2f * temp1; 
-//             }
-//             else if (temp2 < 0.0f)
-//             {
-//                 EngineTuning::s_ScrollOffset = max(0.0f, EngineTuning::s_ScrollOffset + 0.2f * temp2);
-//             }
-//         }
-//         else
-//             Text.SetColor( Color(1.0f, 1.0f, 1.0f) );
-// 
-//         VariableGroup* subGroup = dynamic_cast<VariableGroup*>(iter->second);
-//         if (subGroup != nullptr)
-//         {
-// 
-//             if (subGroup->IsExpanded())
-//             {
-//                 Text.DrawString("- ");
-//             }
-//             else
-//             {
-//                 Text.DrawString("+ ");                
-//             }
-//             Text.DrawString(iter->first);
-//             Text.DrawString("/...\n");
-// 
-//             if (subGroup->IsExpanded())
-//             {
-//                 subGroup->Display(Text, leftMargin + 30.0f, highlightedTweak);
-//                 Text.SetLeftMargin(leftMargin);
-//                 Text.SetCursorX(leftMargin);
-//             }
-//             
-//         }
-//         else
-//         {
-//             
-//             iter->second->DisplayValue(Text);
-//             Text.SetCursorX(leftMargin + 200.0f);
-//             Text.DrawString(iter->first);
-//             Text.NewLine();
-//         }
-//         
-//     }
+    Text.SetLeftMargin(leftMargin);
+    Text.SetCursorX(leftMargin);
+
+    for (auto iter = m_Children.begin(); iter != m_Children.end(); ++iter)
+    {
+        
+        if (iter->second == highlightedTweak)
+        {
+            Text.SetColor( Color(1.0f, 1.0f, 0.25f) );
+            float temp1 = Text.GetCursorY() - EngineTuning::s_ScrollBottomTrigger;
+            float temp2 = Text.GetCursorY() - EngineTuning::s_ScrollTopTrigger;
+            if (temp1 > 0.0f)
+            {
+                EngineTuning::s_ScrollOffset += 0.2f * temp1; 
+            }
+            else if (temp2 < 0.0f)
+            {
+                EngineTuning::s_ScrollOffset = max(0.0f, EngineTuning::s_ScrollOffset + 0.2f * temp2);
+            }
+        }
+        else
+            Text.SetColor( Color(1.0f, 1.0f, 1.0f) );
+
+        VariableGroup* subGroup = dynamic_cast<VariableGroup*>(iter->second);
+        if (subGroup != nullptr)
+        {
+
+            if (subGroup->IsExpanded())
+            {
+                Text.DrawString("- ");
+            }
+            else
+            {
+                Text.DrawString("+ ");                
+            }
+            Text.DrawString(iter->first);
+            Text.DrawString("/...\n");
+
+            if (subGroup->IsExpanded())
+            {
+                subGroup->Display(Text, leftMargin + 30.0f, highlightedTweak);
+                Text.SetLeftMargin(leftMargin);
+                Text.SetCursorX(leftMargin);
+            }
+            
+        }
+        else
+        {
+            
+            iter->second->DisplayValue(Text);
+            Text.SetCursorX(leftMargin + 200.0f);
+            Text.DrawString(iter->first);
+            Text.NewLine();
+        }
+        
+    }
 }
 
 void VariableGroup::SaveToFile( FILE* file, int fileMargin )
@@ -300,7 +300,7 @@ BoolVar::BoolVar( const std::string& path, bool val )
 
 void BoolVar::DisplayValue( TextContext& Text ) const
 {
- //   Text.DrawFormattedString("[%c]", m_Flag ? 'X' : '-');
+    Text.DrawFormattedString("[%c]", m_Flag ? 'X' : '-');
 }
 
 std::string BoolVar::ToString( void ) const
@@ -336,7 +336,7 @@ NumVar::NumVar( const std::string& path, float val, float minVal, float maxVal, 
 
 void NumVar::DisplayValue( TextContext& Text ) const
 {
- //   Text.DrawFormattedString("%-11f", m_Value);
+    Text.DrawFormattedString("%-11f", m_Value);
 }
 
 std::string NumVar::ToString( void ) const
@@ -379,7 +379,7 @@ ExpVar::operator float() const
 
 void ExpVar::DisplayValue( TextContext& Text ) const
 {
- //   Text.DrawFormattedString("%-11f", (float)*this);
+    Text.DrawFormattedString("%-11f", (float)*this);
 }
 
 std::string ExpVar::ToString( void ) const
@@ -411,7 +411,7 @@ IntVar::IntVar( const std::string& path, int32_t val, int32_t minVal, int32_t ma
 
 void IntVar::DisplayValue( TextContext& Text ) const
 {
- //   Text.DrawFormattedString("%-11d", m_Value);
+    Text.DrawFormattedString("%-11d", m_Value);
 }
 
 std::string IntVar::ToString( void ) const
@@ -442,7 +442,7 @@ EnumVar::EnumVar( const std::string& path, int32_t initialVal, int32_t listLengt
 
 void EnumVar::DisplayValue( TextContext& Text ) const
 {
- //   Text.DrawString(m_EnumLabels[m_Value]);
+    Text.DrawString(m_EnumLabels[m_Value]);
 }
 
 std::string EnumVar::ToString( void ) const
@@ -484,7 +484,7 @@ CallbackTrigger::CallbackTrigger( const std::string& path, std::function<void (v
 void CallbackTrigger::DisplayValue( TextContext& Text ) const
 {
     static const char s_animation[] = { '-', '\\', '|', '/' };
- //   Text.DrawFormattedString("[%c]", s_animation[(m_BangDisplay >> 3) & 3]);
+    Text.DrawFormattedString("[%c]", s_animation[(m_BangDisplay >> 3) & 3]);
 
     if (m_BangDisplay > 0)
         --m_BangDisplay;
@@ -598,50 +598,52 @@ std::function<void(void*)> StartLoadFunc = StartLoad;
 static CallbackTrigger Load("Load Settings", StartLoadFunc, nullptr); 
 
 
-// void EngineTuning::Display( GraphicsContext& Context, float x, float y, float w, float h )
-// {
-//     GraphRenderer::RenderGraphs(Context, GraphRenderer::GraphType::Profile);
-// 
-//     TextContext Text(Context);
-//     Text.Begin();
-// 
-//     EngineProfiling::DisplayFrameRate(Text);
-// 
-//     Text.ResetCursor( x, y );
-// 
-//     if (!sm_IsVisible)
-//     {
-//         EngineProfiling::Display(Text, x, y, w, h);
-//         return;
-//     }
-// 
-//     s_ScrollTopTrigger = y + h * 0.2f;
-//     s_ScrollBottomTrigger = y + h * 0.8f;
-// 
-//     float hScale = g_DisplayWidth / 1920.0f;
-//     float vScale = g_DisplayHeight / 1080.0f;
-// 
-//     Context.SetScissor((uint32_t)Floor(x * hScale), (uint32_t)Floor(y * vScale), 
-//         (uint32_t)Ceiling((x + w) * hScale), (uint32_t)Ceiling((y + h) * vScale));
-// 
-//     Text.ResetCursor(x, y - s_ScrollOffset );
-//     Text.SetColor( Color(0.5f, 1.0f, 1.0f) );
-//     Text.DrawString("Engine Tuning\n");
-//     Text.SetTextSize(20.0f);
-// 
-//     VariableGroup::sm_RootGroup.Display( Text, x, sm_SelectedVariable );
-//     
-//     EngineProfiling::DisplayPerfGraph(Context);
-// 
-//     Text.End();
-//     Context.SetScissor(0, 0, g_DisplayWidth, g_DisplayHeight);
-// }
+void EngineTuning::Display( GraphicsContext& Context, float x, float y, float w, float h )
+{
+    GraphRenderer::RenderGraphs(Context, GraphRenderer::GraphType::Profile);
+
+    TextContext Text(Context);
+    Text.Begin();
+
+    EngineProfiling::DisplayFrameRate(Text);
+
+    Text.ResetCursor( x, y );
+
+    if (!sm_IsVisible)
+    {
+        EngineProfiling::Display(Text, x, y, w, h);
+        return;
+    }
+
+    s_ScrollTopTrigger = y + h * 0.2f;
+    s_ScrollBottomTrigger = y + h * 0.8f;
+
+    float hScale = g_DisplayWidth / 1920.0f;
+    float vScale = g_DisplayHeight / 1080.0f;
+
+    Context.SetScissor((uint32_t)Floor(x * hScale), (uint32_t)Floor(y * vScale), 
+        (uint32_t)Ceiling((x + w) * hScale), (uint32_t)Ceiling((y + h) * vScale));
+
+    Text.ResetCursor(x, y - s_ScrollOffset );
+    Text.SetColor( Color(0.5f, 1.0f, 1.0f) );
+    Text.DrawString("Engine Tuning\n");
+    Text.SetTextSize(20.0f);
+
+    VariableGroup::sm_RootGroup.Display( Text, x, sm_SelectedVariable );
+    
+    EngineProfiling::DisplayPerfGraph(Context);
+
+    Text.End();
+    Context.SetScissor(0, 0, g_DisplayWidth, g_DisplayHeight);
+}
 
 void EngineTuning::AddToVariableGraph( const string& path, EngineVar& var )
 {
+    // meng 源代码有内存泄漏，简单修复
     VariableGroup* group = &VariableGroup::sm_RootGroup;
     group->AddChild(path, var);
 
+    // 弃用源代码
 #if 0
     vector<string> separatedPath;
     string leafName;

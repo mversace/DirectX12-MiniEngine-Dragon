@@ -18,7 +18,6 @@
 #include <vector>
 #include <queue>
 
-class CommandContext;
 namespace Graphics
 {
     extern ID3D12Device* g_Device;

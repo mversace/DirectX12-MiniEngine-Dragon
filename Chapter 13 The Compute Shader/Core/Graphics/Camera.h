@@ -57,6 +57,7 @@ namespace Math
         // Redundant data cached for faster lookups.
         Matrix3 m_Basis;
 
+        // meng
         // 0 矩阵变换
         // 1. 渲染目标从模型坐标系转到世界坐标系--->世界变换矩阵
         // 2. 再从世界坐标系转到视角坐标系--->视角变换矩阵 m_ViewMatrix

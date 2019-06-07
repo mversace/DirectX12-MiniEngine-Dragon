@@ -17,6 +17,11 @@
 #include "DepthBuffer.h"
 #include "GraphicsCore.h"
 #include "DescriptorHeap.h"
+#include "EngineProfiling.h"
+
+#ifndef RELEASE
+#include <pix3.h>
+#endif
 
 using namespace Graphics;
 
@@ -71,6 +76,8 @@ CommandContext& CommandContext::Begin( const std::wstring ID )
 {
     CommandContext* NewContext = g_ContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
     NewContext->SetID(ID);
+    if (ID.length() > 0)
+        EngineProfiling::BeginBlock(ID, NewContext);
     return *NewContext;
 }
 
@@ -107,6 +114,9 @@ uint64_t CommandContext::Finish( bool WaitForCompletion )
     ASSERT(m_Type == D3D12_COMMAND_LIST_TYPE_DIRECT || m_Type == D3D12_COMMAND_LIST_TYPE_COMPUTE);
 
     FlushResourceBarriers();
+
+    if (m_ID.length() > 0)
+        EngineProfiling::EndBlock(this);
 
     ASSERT(m_CurrentAllocator != nullptr);
 
@@ -380,6 +390,30 @@ void CommandContext::BeginResourceTransition(GpuResource & Resource, D3D12_RESOU
         FlushResourceBarriers();
 }
 
+void CommandContext::PIXBeginEvent(const wchar_t* label)
+{
+#ifdef RELEASE
+    (label);
+#else
+    ::PIXBeginEvent(m_CommandList, 0, label);
+#endif
+}
+
+void CommandContext::PIXEndEvent(void)
+{
+#ifndef RELEASE
+    ::PIXEndEvent(m_CommandList);
+#endif
+}
+
+void CommandContext::PIXSetMarker(const wchar_t* label)
+{
+#ifdef RELEASE
+    (label);
+#else
+    ::PIXSetMarker(m_CommandList, 0, label);
+#endif
+}
 
 void GraphicsContext::SetRenderTargets( UINT NumRTVs, const D3D12_CPU_DESCRIPTOR_HANDLE RTVs[], D3D12_CPU_DESCRIPTOR_HANDLE DSV )
 {

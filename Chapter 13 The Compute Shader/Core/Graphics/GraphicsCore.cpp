@@ -15,10 +15,10 @@
 #include "GraphicsCore.h"
 #include "GameCore.h"
 #include "BufferManager.h"
-// #include "GpuTimeManager.h"
+#include "GpuTimeManager.h"
 // #include "PostEffects.h"
 // #include "SSAO.h"
-// #include "TextRenderer.h"
+#include "TextRenderer.h"
 #include "ColorBuffer.h"
 #include "SystemTime.h"
 #include "SamplerManager.h"
@@ -28,7 +28,7 @@
 #include "RootSignature.h"
 //#include "CommandSignature.h"
 // #include "ParticleEffectManager.h"
-// #include "GraphRenderer.h"
+#include "GraphRenderer.h"
 // #include "TemporalEffects.h"
 
 // This macro determines whether to detect if there is an HDR display and enable HDR10 output.
@@ -347,6 +347,11 @@ bool Graphics::Initialize(void)
             // don't all need the same types of resources.
             D3D12_MESSAGE_ID_COMMAND_LIST_DESCRIPTOR_TABLE_NOT_SET,
 
+            // 清理后台缓冲区所采用的颜色值与默认值不同，会报这个错误，我们用雾的时候会出现
+            D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
+            // 清理深度/模板缓冲区所采用的值与默认值不同，会报这个错误
+            D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE,
+
             // RESOURCE_BARRIER_DUPLICATE_SUBRESOURCE_TRANSITIONS
             (D3D12_MESSAGE_ID)1008,
         };
@@ -516,13 +521,13 @@ bool Graphics::Initialize(void)
 
     g_PreDisplayBuffer.Create(L"PreDisplay Buffer", g_DisplayWidth, g_DisplayHeight, 1, SwapChainFormat);
 // 
-//     GpuTimeManager::Initialize(4096);
-     SetNativeResolution();
+    GpuTimeManager::Initialize(4096);
+    SetNativeResolution();
 //     TemporalEffects::Initialize();
 //     PostEffects::Initialize();
 //     SSAO::Initialize();
-//     TextRenderer::Initialize();
-//     GraphRenderer::Initialize();
+    TextRenderer::Initialize();
+    GraphRenderer::Initialize();
 //     ParticleEffects::Initialize(kMaxNativeWidth, kMaxNativeHeight);
 
     s_FrameStartTick = SystemTime::GetCurrentTick();;
@@ -541,7 +546,7 @@ void Graphics::Shutdown( void )
 {
     CommandContext::DestroyAllContexts();
     g_CommandManager.Shutdown();
-//    GpuTimeManager::Shutdown();
+    GpuTimeManager::Shutdown();
     s_SwapChain1->Release();
     PSO::DestroyAll();
     RootSignature::DestroyAll();
@@ -552,8 +557,8 @@ void Graphics::Shutdown( void )
 //     TemporalEffects::Shutdown();
 //     PostEffects::Shutdown();
 //     SSAO::Shutdown();
-//     TextRenderer::Shutdown();
-//     GraphRenderer::Shutdown();
+    TextRenderer::Shutdown();
+    GraphRenderer::Shutdown();
 //     ParticleEffects::Shutdown();
     TextureManager::Shutdown();
 

@@ -145,6 +145,12 @@ public:
     // 修改资源状态实际上是放入了一个队列，这个是把资源状态的修改直接发送给gpu
     inline void FlushResourceBarriers(void);
 
+    void InsertTimeStamp(ID3D12QueryHeap* pQueryHeap, uint32_t QueryIdx);
+    void ResolveTimeStamps(ID3D12Resource* pReadbackHeap, ID3D12QueryHeap* pQueryHeap, uint32_t NumQueries);
+    void PIXBeginEvent(const wchar_t* label);
+    void PIXEndEvent(void);
+    void PIXSetMarker(const wchar_t* label);
+
     // 设置描述符堆
     void SetDescriptorHeap( D3D12_DESCRIPTOR_HEAP_TYPE Type, ID3D12DescriptorHeap* HeapPtr );
     void SetDescriptorHeaps( UINT HeapCount, D3D12_DESCRIPTOR_HEAP_TYPE Type[], ID3D12DescriptorHeap* HeapPtrs[] );
@@ -294,6 +300,16 @@ inline void CommandContext::ResetCounter(StructuredBuffer& Buf, uint32_t Value)
 {
     FillBuffer(Buf.GetCounterBuffer(), 0, Value, sizeof(uint32_t));
     TransitionResource(Buf.GetCounterBuffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+}
+
+inline void CommandContext::InsertTimeStamp(ID3D12QueryHeap* pQueryHeap, uint32_t QueryIdx)
+{
+    m_CommandList->EndQuery(pQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, QueryIdx);
+}
+
+inline void CommandContext::ResolveTimeStamps(ID3D12Resource* pReadbackHeap, ID3D12QueryHeap* pQueryHeap, uint32_t NumQueries)
+{
+    m_CommandList->ResolveQueryData(pQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, 0, NumQueries, pReadbackHeap, 0);
 }
 
 inline void CommandContext::SetDescriptorHeap( D3D12_DESCRIPTOR_HEAP_TYPE Type, ID3D12DescriptorHeap* HeapPtr )

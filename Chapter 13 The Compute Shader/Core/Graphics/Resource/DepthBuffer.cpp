@@ -25,6 +25,7 @@ void DepthBuffer::Create( const std::wstring& Name, uint32_t Width, uint32_t Hei
 
     D3D12_CLEAR_VALUE ClearValue = {};
     ClearValue.Format = Format;
+    // meng 改为左手坐标系，深度默认值为改为1.0f
     ClearValue.DepthStencil.Depth = 1.0f;
     ClearValue.DepthStencil.Stencil = 0;
     CreateTextureResource(Graphics::g_Device, Name, ResourceDesc, ClearValue, VidMemPtr);
@@ -38,6 +39,7 @@ void DepthBuffer::Create( const std::wstring& Name, uint32_t Width, uint32_t Hei
 
     D3D12_CLEAR_VALUE ClearValue = {};
     ClearValue.Format = Format;
+    // meng 改为左手坐标系，深度默认值为改为1.0f
     ClearValue.DepthStencil.Depth = 1.0f;
     ClearValue.DepthStencil.Stencil = 0;
     CreateTextureResource(Graphics::g_Device, Name, ResourceDesc, ClearValue, VidMemPtr);
@@ -127,7 +129,11 @@ void DepthBuffer::CreateDerivedViews( ID3D12Device* Device, DXGI_FORMAT Format )
             m_hStencilSRV = Graphics::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
         SRVDesc.Format = stencilReadFormat;
+
+        // meng 修复模板缓冲无效的bug
+        // https://github.com/Microsoft/DirectX-Graphics-Samples/issues/281
         SRVDesc.Texture2D.PlaneSlice = 1;
+
         Device->CreateShaderResourceView( Resource, &SRVDesc, m_hStencilSRV );
     }
 }

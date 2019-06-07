@@ -79,6 +79,9 @@
     <Filter Include="Core\Graphics\Texture">
       <UniqueIdentifier>{5a7d369c-0aad-4e98-9906-82afcdfade82}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Graphics\Renderer">
+      <UniqueIdentifier>{fd6a59c4-e585-405e-8948-2364bcbac00e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\Math\Frustum.cpp">
@@ -188,6 +191,18 @@
     </ClCompile>
     <ClCompile Include="Waves.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Renderer\GraphRenderer.cpp">
+      <Filter>Core\Graphics\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\Renderer\TextRenderer.cpp">
+      <Filter>Core\Graphics\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\EngineProfiling.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\GpuTimeManager.cpp">
+      <Filter>Core\Graphics</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -343,6 +358,18 @@
     </ClInclude>
     <ClInclude Include="Waves.h">
       <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Renderer\GraphRenderer.h">
+      <Filter>Core\Graphics\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Renderer\TextRenderer.h">
+      <Filter>Core\Graphics\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\EngineProfiling.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\GpuTimeManager.h">
+      <Filter>Core\Graphics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

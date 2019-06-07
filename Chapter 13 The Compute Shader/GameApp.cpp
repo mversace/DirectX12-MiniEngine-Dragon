@@ -16,11 +16,6 @@
 #include "CompiledShaders/billboardGS.h"
 #include "CompiledShaders/billboardPS.h"
 
-namespace GameCore
-{
-    extern HWND g_hWnd;
-}
-
 static float RandF()
 {
     return (float)(rand()) / (float)RAND_MAX;
@@ -133,20 +128,6 @@ void GameApp::Cleanup(void)
 
 void GameApp::Update(float deltaT)
 {
-    // 在title那里显示渲染帧数
-    float fps = Graphics::GetFrameRate(); // fps = frameCnt / 1
-    float mspf = Graphics::GetFrameTime();
-
-    std::wstring fpsStr = std::to_wstring(fps);
-    std::wstring mspfStr = std::to_wstring(mspf);
-
-    std::wstring windowText = L"CrossGate";
-    windowText +=
-        L"    fps: " + fpsStr +
-        L"   mspf: " + mspfStr;
-
-    SetWindowText(GameCore::g_hWnd, windowText.c_str());
-
     // 鼠标左键旋转
     if (GameInput::IsPressed(GameInput::kMouse0)) {
         // Make each pixel correspond to a quarter of a degree.

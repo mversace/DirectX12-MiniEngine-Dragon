@@ -17,6 +17,7 @@
 
 using namespace Math;
 
+// meng 整体修改为左手坐标系
 void BaseCamera::SetLookDirection( Vector3 forward, Vector3 up )
 {
     // 计算前方

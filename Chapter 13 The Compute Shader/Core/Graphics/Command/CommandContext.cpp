@@ -103,6 +103,11 @@ uint64_t CommandContext::Flush(bool WaitForCompletion)
         m_CommandList->SetGraphicsRootSignature(m_CurGraphicsRootSignature);
         m_CommandList->SetPipelineState(m_CurGraphicsPipelineState);
     }
+    if (m_CurComputeRootSignature)
+    {
+        m_CommandList->SetComputeRootSignature(m_CurComputeRootSignature);
+        m_CommandList->SetPipelineState(m_CurComputePipelineState);
+    }
 
     BindDescriptorHeaps();
 
@@ -146,12 +151,15 @@ CommandContext::CommandContext(D3D12_COMMAND_LIST_TYPE Type) :
     m_CpuLinearAllocator(kCpuWritable),
     m_GpuLinearAllocator(kGpuExclusive)
 {
+    m_OwningManager = nullptr;
     m_CommandList = nullptr;
     m_CurrentAllocator = nullptr;
     ZeroMemory(m_CurrentDescriptorHeaps, sizeof(m_CurrentDescriptorHeaps));
 
     m_CurGraphicsRootSignature = nullptr;
     m_CurGraphicsPipelineState = nullptr;
+    m_CurComputeRootSignature = nullptr;
+    m_CurComputePipelineState = nullptr;
     m_NumBarriersToFlush = 0;
 }
 
@@ -176,6 +184,8 @@ void CommandContext::Reset( void )
 
     m_CurGraphicsRootSignature = nullptr;
     m_CurGraphicsPipelineState = nullptr;
+    m_CurComputeRootSignature = nullptr;
+    m_CurComputePipelineState = nullptr;
     m_NumBarriersToFlush = 0;
 
     BindDescriptorHeaps();

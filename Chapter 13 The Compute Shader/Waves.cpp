@@ -7,6 +7,12 @@
 #include <algorithm>
 #include <vector>
 #include <cassert>
+#include <fstream>
+#include "CommandContext.h"
+#include "ReadbackBuffer.h"
+
+#include "CompiledShaders/waveDisturbCS.h"
+#include "CompiledShaders/waveUpdateCS.h"
 
 using namespace DirectX;
 
@@ -26,33 +32,17 @@ Waves::Waves(int m, int n, float dx, float dt, float speed, float damping)
     mK1 = (damping*dt - 2.0f) / d;
     mK2 = (4.0f - 8.0f*e) / d;
     mK3 = (2.0f*e) / d;
-
-    mPrevSolution.resize(m*n);
-    mCurrSolution.resize(m*n);
-    mNormals.resize(m*n);
-    mTangentX.resize(m*n);
-
-    // Generate grid vertices in system memory.
-
-    float halfWidth = (n - 1)*dx*0.5f;
-    float halfDepth = (m - 1)*dx*0.5f;
-    for(int i = 0; i < m; ++i)
-    {
-        float z = halfDepth - i*dx;
-        for(int j = 0; j < n; ++j)
-        {
-            float x = -halfWidth + j*dx;
-
-            mPrevSolution[i*n + j] = XMFLOAT3(x, 0.0f, z);
-            mCurrSolution[i*n + j] = XMFLOAT3(x, 0.0f, z);
-            mNormals[i*n + j] = XMFLOAT3(0.0f, 1.0f, 0.0f);
-            mTangentX[i*n + j] = XMFLOAT3(1.0f, 0.0f, 0.0f);
-        }
-    }
 }
 
 Waves::~Waves()
 {
+}
+
+void Waves::Destory()
+{
+    _bufferDisturb.Destroy();
+    _bufferPre.Destroy();
+    _bufferWaves.Destroy();
 }
 
 int Waves::RowCount()const
@@ -85,6 +75,11 @@ float Waves::Depth()const
 	return mNumRows*mSpatialStep;
 }
 
+float Waves::SpatialStep()const
+{
+    return mSpatialStep;
+}
+
 void Waves::Update(float dt)
 {
 	static float t = 0;
@@ -95,78 +90,79 @@ void Waves::Update(float dt)
 	// Only update the simulation at the specified time step.
 	if( t >= mTimeStep )
 	{
-		// Only update interior points; we use zero boundary conditions.
-		concurrency::parallel_for(1, mNumRows - 1, [this](int i)
-		//for(int i = 1; i < mNumRows-1; ++i)
-		{
-			for(int j = 1; j < mNumCols-1; ++j)
-			{
-				// After this update we will be discarding the old previous
-				// buffer, so overwrite that buffer with the new update.
-				// Note how we can do this inplace (read/write to same element) 
-				// because we won't need prev_ij again and the assignment happens last.
+        ComputeContext& context = ComputeContext::Begin(L"wave update");
+        context.SetRootSignature(_updateRS);
+        context.SetPipelineState(_updatePSO);
 
-				// Note j indexes x and i indexes z: h(x_j, z_i, t_k)
-				// Moreover, our +z axis goes "down"; this is just to 
-				// keep consistent with our row indices going down.
+        context.SetConstants(0, mK1, mK2, mK3);
+        context.TransitionResource(_bufferPre, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        context.SetDynamicDescriptor(1, 0, _bufferPre.GetUAV());
+        context.TransitionResource(_bufferDisturb, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        context.SetDynamicDescriptor(2, 0, _bufferDisturb.GetUAV());
+        context.TransitionResource(_bufferWaves, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        context.SetDynamicDescriptor(3, 0, _bufferWaves.GetUAV());
 
-				mPrevSolution[i*mNumCols+j].y = 
-					mK1*mPrevSolution[i*mNumCols+j].y +
-					mK2*mCurrSolution[i*mNumCols+j].y +
-					mK3*(mCurrSolution[(i+1)*mNumCols+j].y + 
-					     mCurrSolution[(i-1)*mNumCols+j].y + 
-					     mCurrSolution[i*mNumCols+j+1].y + 
-						 mCurrSolution[i*mNumCols+j-1].y);
-			}
-		});
+        context.Dispatch(mNumCols / 16, mNumRows / 16, 1);
 
-		// We just overwrote the previous buffer with the new data, so
-		// this data needs to become the current solution and the old
-		// current solution becomes the new previous solution.
-		std::swap(mPrevSolution, mCurrSolution);
+        context.Finish(true);
 
-		t = 0.0f; // reset time
+        auto buffer = _bufferPre;
+        _bufferPre = _bufferDisturb;
+        _bufferDisturb = _bufferWaves;
+        _bufferWaves = buffer;
 
-		//
-		// Compute normals using finite difference scheme.
-		//
-		concurrency::parallel_for(1, mNumRows - 1, [this](int i)
-		//for(int i = 1; i < mNumRows - 1; ++i)
-		{
-			for(int j = 1; j < mNumCols-1; ++j)
-			{
-				float l = mCurrSolution[i*mNumCols+j-1].y;
-				float r = mCurrSolution[i*mNumCols+j+1].y;
-				float t = mCurrSolution[(i-1)*mNumCols+j].y;
-				float b = mCurrSolution[(i+1)*mNumCols+j].y;
-				mNormals[i*mNumCols+j].x = -r+l;
-				mNormals[i*mNumCols+j].y = 2.0f*mSpatialStep;
-				mNormals[i*mNumCols+j].z = b-t;
-
-				XMVECTOR n = XMVector3Normalize(XMLoadFloat3(&mNormals[i*mNumCols+j]));
-				XMStoreFloat3(&mNormals[i*mNumCols+j], n);
-
-				mTangentX[i*mNumCols+j] = XMFLOAT3(2.0f*mSpatialStep, r-l, 0.0f);
-				XMVECTOR T = XMVector3Normalize(XMLoadFloat3(&mTangentX[i*mNumCols+j]));
-				XMStoreFloat3(&mTangentX[i*mNumCols+j], T);
-			}
-		});
+        t = 0.0f;
 	}
 }
 
 void Waves::Disturb(int i, int j, float magnitude)
 {
-	// Don't disturb boundaries.
-	assert(i > 1 && i < mNumRows-2);
-	assert(j > 1 && j < mNumCols-2);
+    ComputeContext& context = ComputeContext::Begin(L"wave disturb");
+    context.SetRootSignature(_disturbRS);
+    context.SetPipelineState(_disturbPSO);
+    // i=row, j=col，所以这里要反过来
+    context.SetConstants(0, magnitude, j, i);
 
-	float halfMag = 0.5f*magnitude;
+    context.TransitionResource(_bufferDisturb, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    context.SetDynamicDescriptor(1, 0, _bufferDisturb.GetUAV());
 
-	// Disturb the ijth vertex height and its neighbors.
-	mCurrSolution[i*mNumCols+j].y     += magnitude;
-	mCurrSolution[i*mNumCols+j+1].y   += halfMag;
-	mCurrSolution[i*mNumCols+j-1].y   += halfMag;
-	mCurrSolution[(i+1)*mNumCols+j].y += halfMag;
-	mCurrSolution[(i-1)*mNumCols+j].y += halfMag;
+    context.Dispatch(1, 1, 1);
+    context.Finish(true);
+}
+
+ColorBuffer& Waves::getWavesBuffer()
+{
+    return _bufferDisturb;
 }
 	
+void Waves::init()
+{
+    // 创建波浪的根签名
+    _disturbRS.Reset(2, 0);
+    _disturbRS[0].InitAsConstants(0, 3);    // 3个32位的常量
+    _disturbRS[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1);       // 输出的数值
+    _disturbRS.Finalize(L"disturb RS");
+
+    // 创建波浪的PSO
+    _disturbPSO.SetRootSignature(_disturbRS);
+    _disturbPSO.SetComputeShader(g_pwaveDisturbCS, sizeof(g_pwaveDisturbCS));
+    _disturbPSO.Finalize();
+
+    // 创建更新波浪顶点的根签名
+    _updateRS.Reset(4, 0);
+    _updateRS[0].InitAsConstants(0, 3);
+    _updateRS[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1);
+    _updateRS[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
+    _updateRS[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 2, 1);
+    _updateRS.Finalize(L"update RS");
+
+    // 创建更新波浪顶点的PSO
+    _updatePSO.SetRootSignature(_updateRS);
+    _updatePSO.SetComputeShader(g_pwaveUpdateCS, sizeof(g_pwaveUpdateCS));
+    _updatePSO.Finalize();
+
+    // 存储disturb的输出，然后作为update的输入
+    _bufferDisturb.Create(L"bufferOut", mNumCols, mNumRows, 1, DXGI_FORMAT_R32_FLOAT);
+    _bufferPre.Create(L"bufferPre", mNumCols, mNumRows, 1, DXGI_FORMAT_R32_FLOAT);
+    _bufferWaves.Create(L"bufferWaves", mNumCols, mNumRows, 1, DXGI_FORMAT_R32_FLOAT);
+}

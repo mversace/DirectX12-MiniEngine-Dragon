@@ -17,6 +17,7 @@
 #include "CompiledShaders/billboardGS.h"
 #include "CompiledShaders/billboardPS.h"
 #include "CompiledShaders/vecAdd.h"
+#include "CompiledShaders/waveVS.h"
 
 static float RandF()
 {
@@ -42,17 +43,21 @@ void GameApp::Startup(void)
     buildTreeGeo();
     buildMaterials();
     buildRenderItem();
-    testComputerWork();
+//    testComputerWork();
+    m_waves.init();
 
     Graphics::g_SceneColorBuffer.SetClearColor({ 0.7f, 0.7f, 0.7f });
 
     // 根签名
-    m_RootSignature.Reset(4, 1);
+    m_RootSignature.Reset(5, 3);
     m_RootSignature.InitStaticSampler(0, Graphics::SamplerAnisoWrapDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+    m_RootSignature.InitStaticSampler(1, Graphics::SamplerLinearWrapDesc, D3D12_SHADER_VISIBILITY_VERTEX);
+    m_RootSignature.InitStaticSampler(2, Graphics::SamplerPointClampDesc, D3D12_SHADER_VISIBILITY_VERTEX);
     m_RootSignature[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX);
     m_RootSignature[1].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_ALL);
     m_RootSignature[2].InitAsConstantBuffer(2, D3D12_SHADER_VISIBILITY_PIXEL);
-    m_RootSignature[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+    m_RootSignature[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1);
+    m_RootSignature[4].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
     m_RootSignature.Finalize(L"box signature", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
     // 创建PSO
@@ -118,6 +123,12 @@ void GameApp::Startup(void)
     billboardPSO.SetPixelShader(g_pbillboardPS, sizeof(g_pbillboardPS));
     billboardPSO.Finalize();
     m_mapPSO[E_EPT_BILLBOARD] = billboardPSO;
+
+    // GPU计算水体顶点PSO
+    GraphicsPSO gpuWavesPSO = transparencyPSO;
+    gpuWavesPSO.SetVertexShader(g_pwaveVS, sizeof(g_pwaveVS));
+    gpuWavesPSO.Finalize();
+    m_mapPSO[E_EPT_GPUWAVES] = gpuWavesPSO;
 }
 
 void GameApp::Cleanup(void)
@@ -127,6 +138,8 @@ void GameApp::Cleanup(void)
     m_mapPSO.clear();
 
     m_vecAll.clear();
+
+    m_waves.Destory();
 }
 
 void GameApp::Update(float deltaT)
@@ -215,6 +228,7 @@ void GameApp::RenderScene(void)
    
     // 设置显示物体的常量缓冲区
     setLightContantsBuff(gfxContext);
+    gfxContext.SetDynamicDescriptor(4, 0, m_waves.getWavesBuffer().GetSRV());
 
     // 开始绘制
     // 绘制陆地
@@ -229,7 +243,11 @@ void GameApp::RenderScene(void)
     gfxContext.SetPipelineState(m_mapPSO[E_EPT_BILLBOARD]);
     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::AlphaTestedTreeSprites]);
 
-    // 绘制水体
+    // 绘制GPU更新顶点的水体，带透明
+    gfxContext.SetPipelineState(m_mapPSO[E_EPT_GPUWAVES]);
+    drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::gpuWaves]);
+
+    // 绘制透明物体
     gfxContext.SetPipelineState(m_mapPSO[E_EPT_TRANSPARENT]);
     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Transparent]);
 
@@ -263,6 +281,8 @@ void GameApp::drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderIte
         obc.World = item->modeToWorld;
         obc.texTransform = item->texTransform;
         obc.matTransform = Transpose(item->matTransform);
+        obc.DisplacementMapTexelSize = item->DisplacementMapTexelSize;
+        obc.GridSpatialStep = item->GridSpatialStep;
         gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
 
         // 设置渲染目标的纹理视图
@@ -367,44 +387,31 @@ void GameApp::buildBoxGeo()
 
 void GameApp::buildWavesGeo()
 {
-    // waves
-    std::vector<std::uint16_t> waveIndices(3 * m_waves.TriangleCount()); // 3 indices per face
+    GeometryGenerator geoGen;
+    GeometryGenerator::MeshData grid = geoGen.CreateGrid(160.0f, 160.0f, m_waves.RowCount(), m_waves.ColumnCount());
 
-    // Iterate over each quad.
-    int m = m_waves.RowCount();
-    int n = m_waves.ColumnCount();
-    int k = 0;
-    for (int i = 0; i < m - 1; ++i)
+    std::vector<Vertex> vertices(grid.Vertices.size());
+    for (size_t i = 0; i < grid.Vertices.size(); ++i)
     {
-        for (int j = 0; j < n - 1; ++j)
-        {
-            waveIndices[k] = i * n + j;
-            waveIndices[k + 1] = i * n + j + 1;
-            waveIndices[k + 2] = (i + 1) * n + j;
-
-            waveIndices[k + 3] = (i + 1) * n + j;
-            waveIndices[k + 4] = i * n + j + 1;
-            waveIndices[k + 5] = (i + 1) * n + j + 1;
-
-            k += 6; // next quad
-        }
+        vertices[i].Pos = grid.Vertices[i].Position;
+        vertices[i].Normal = grid.Vertices[i].Normal;
+        vertices[i].TexC = grid.Vertices[i].TexC;
     }
+
+    std::vector<std::uint32_t> indices = grid.Indices32;
 
     auto geo = std::make_unique<MeshGeometry>();
     geo->name = "wavesGeo";
-    geo->bDynamicVertex = true;
 
-    geo->vecVertex.resize(m_waves.VertexCount());
-    geo->createIndex(L"wavesGeo index", (UINT)waveIndices.size(), sizeof(std::uint16_t), waveIndices.data());
+    geo->createVertex(L"wavesGeo vertex", (UINT)vertices.size(), sizeof(Vertex), vertices.data());
+    geo->createIndex(L"wavesGeo index", (UINT)indices.size(), sizeof(std::uint32_t), indices.data());
 
     SubmeshGeometry submesh;
-    submesh.IndexCount = (UINT)waveIndices.size();
+    submesh.IndexCount = (UINT)indices.size();
     submesh.StartIndexLocation = 0;
     submesh.BaseVertexLocation = 0;
 
     geo->geoMap["wave"] = submesh;
-
-    m_pWavesVec = &geo->vecVertex;
 
     m_mapGeometries[geo->name] = std::move(geo);
 }
@@ -515,13 +522,16 @@ void GameApp::buildRenderItem()
     // 海水
     auto waterRItem = std::make_unique<RenderItem>();
     waterRItem->texTransform = Math::Transpose(Math::Matrix4(Math::AffineTransform(Math::Matrix3::MakeScale(5.0f, 5.0f, 1.0f))));
+    waterRItem->DisplacementMapTexelSize.x = 1.0f / m_waves.ColumnCount();
+    waterRItem->DisplacementMapTexelSize.y = 1.0f / m_waves.RowCount();
+    waterRItem->GridSpatialStep = m_waves.SpatialStep();
     waterRItem->IndexCount = m_mapGeometries["wavesGeo"]->geoMap["wave"].IndexCount;
     waterRItem->StartIndexLocation = m_mapGeometries["wavesGeo"]->geoMap["wave"].StartIndexLocation;
     waterRItem->BaseVertexLocation = m_mapGeometries["wavesGeo"]->geoMap["wave"].BaseVertexLocation;
     waterRItem->geo = m_mapGeometries["wavesGeo"].get();
     waterRItem->mat = m_mapMaterial["water"].get();
     m_pWaveRItem = waterRItem.get();
-    m_vecRenderItems[(int)RenderLayer::Transparent].push_back(waterRItem.get());
+    m_vecRenderItems[(int)RenderLayer::gpuWaves].push_back(waterRItem.get());
 
     auto treeSpritesRitem = std::make_unique<RenderItem>();
     treeSpritesRitem->IndexCount = m_mapGeometries["treeSpritesGeo"]->geoMap["points"].IndexCount;
@@ -581,20 +591,6 @@ void GameApp::UpdateWaves(float deltaT)
     // Update the wave simulation.
     m_waves.Update(deltaT);
 
-    // Update the wave vertex buffer with the new solution.
-    for (int i = 0; i < m_waves.VertexCount(); ++i)
-    {
-        auto p = &m_pWavesVec->at(i);
-
-        p->Pos = m_waves.Position(i);
-        p->Normal = m_waves.Normal(i);
-
-        // Derive tex-coords from position by 
-        // mapping [-w/2,w/2] --> [0,1]
-        p->TexC.x = 0.5f + p->Pos.x / m_waves.Width();
-        p->TexC.y = 0.5f - p->Pos.z / m_waves.Depth();
-    }
-
     AnimateMaterials(deltaT);
 }
 
@@ -631,11 +627,12 @@ void GameApp::testComputerWork()
     std::vector<Data> dataB(nCount);
     for (int i = 0; i < nCount; ++i)
     {
-        dataA[i].v1 = XMFLOAT3(i, i, i);
-        dataA[i].v2 = XMFLOAT2(i, 0);
+        float iii = (float)i;
+        dataA[i].v1 = XMFLOAT3(iii, iii, iii);
+        dataA[i].v2 = XMFLOAT2(iii, 0.0f);
 
-        dataB[i].v1 = XMFLOAT3(-i, i, 0.0f);
-        dataB[i].v2 = XMFLOAT2(0, -i);
+        dataB[i].v1 = XMFLOAT3(-iii, iii, 0.0f);
+        dataB[i].v2 = XMFLOAT2(0.0f, -iii);
     }
 
     // 1. 创建两个默认缓冲区，用于CS的输入

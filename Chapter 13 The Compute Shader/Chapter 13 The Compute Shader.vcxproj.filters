@@ -880,6 +880,15 @@
     <FxCompile Include="Core\Shaders\vecAdd.hlsl">
       <Filter>Shaders\default</Filter>
     </FxCompile>
+    <FxCompile Include="Core\Shaders\waveDisturbCS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\waveUpdateCS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\waveVS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Core\Graphics\Command\readme_command.txt">

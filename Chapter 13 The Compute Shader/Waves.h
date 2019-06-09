@@ -11,6 +11,9 @@
 
 #include <vector>
 #include <DirectXMath.h>
+#include "RootSignature.h"
+#include "PipelineState.h"
+#include "ColorBuffer.h"
 
 class Waves
 {
@@ -26,18 +29,15 @@ public:
 	int TriangleCount()const;
 	float Width()const;
 	float Depth()const;
-
-	// Returns the solution at the ith grid point.
-    const DirectX::XMFLOAT3& Position(int i)const { return mCurrSolution[i]; }
-
-	// Returns the solution normal at the ith grid point.
-    const DirectX::XMFLOAT3& Normal(int i)const { return mNormals[i]; }
-
-	// Returns the unit tangent vector at the ith grid point in the local x-axis direction.
-    const DirectX::XMFLOAT3& TangentX(int i)const { return mTangentX[i]; }
+    float SpatialStep()const;
 
 	void Update(float dt);
 	void Disturb(int i, int j, float magnitude);
+    ColorBuffer& getWavesBuffer();
+
+public:
+    void init();
+    void Destory();
 
 private:
     int mNumRows = 0;
@@ -54,10 +54,17 @@ private:
     float mTimeStep = 0.0f;
     float mSpatialStep = 0.0f;
 
-    std::vector<DirectX::XMFLOAT3> mPrevSolution;
-    std::vector<DirectX::XMFLOAT3> mCurrSolution;
-    std::vector<DirectX::XMFLOAT3> mNormals;
-    std::vector<DirectX::XMFLOAT3> mTangentX;
+    // 随机生成波浪的根签名和流水线
+    RootSignature _disturbRS;
+    ComputePSO _disturbPSO;
+
+    // 更新波浪顶点的根签名和流水线
+    RootSignature _updateRS;
+    ComputePSO _updatePSO;
+
+    ColorBuffer _bufferDisturb; // disturb的输出，同时也是update的输入
+    ColorBuffer _bufferPre;     // 记录上一次的顶点信息
+    ColorBuffer _bufferWaves;   // update生成的最新的顶点信息
 };
 
 #endif // WAVES_H

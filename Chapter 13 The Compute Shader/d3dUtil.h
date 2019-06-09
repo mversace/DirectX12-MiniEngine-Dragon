@@ -22,6 +22,9 @@ __declspec(align(16)) struct ObjectConstants
     Math::Matrix4 World = Math::Matrix4(Math::kIdentity); // 把物体从模型坐标转换到世界坐标
     Math::Matrix4 texTransform = Math::Matrix4(Math::kIdentity); // 该顶点所用纹理的转换矩阵
     Math::Matrix4 matTransform = Math::Matrix4(Math::kIdentity);
+    DirectX::XMFLOAT2 DisplacementMapTexelSize = { 1.0f, 1.0f };
+    float GridSpatialStep = 1.0f;
+    float Pad;
 };
 
 __declspec(align(16)) struct PassConstants
@@ -139,6 +142,9 @@ struct RenderItem
     Math::Matrix4 modeToWorld = Math::Matrix4(Math::kIdentity);      // 模型坐标转世界坐标矩阵
     Math::Matrix4 texTransform = Math::Matrix4(Math::kIdentity);     // 纹理转换矩阵，主要用于顶点对应纹理的缩放
     Math::Matrix4 matTransform = Math::Matrix4(Math::kIdentity);     // 纹理额外控制矩阵，比如通过这个矩阵来动态移动纹理
+
+    DirectX::XMFLOAT2 DisplacementMapTexelSize = { 1.0f, 1.0f };
+    float GridSpatialStep = 1.0f;
 
     int IndexCount = 0;             // 索引个数
     int StartIndexLocation = 0;     // 索引起始位置

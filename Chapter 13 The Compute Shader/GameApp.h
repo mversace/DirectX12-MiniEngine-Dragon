@@ -56,6 +56,7 @@ private:
         AlphaTest,
         Transparent,
         AlphaTestedTreeSprites,
+        gpuWaves,
         Count
     };
     std::vector<RenderItem*> m_vecRenderItems[(int)RenderLayer::Count];
@@ -72,13 +73,13 @@ private:
         E_EPT_ALPHATEST,
         E_EPT_TRANSPARENT,
         E_EPT_BILLBOARD,
+        E_EPT_GPUWAVES,
     };
     std::unordered_map<int, GraphicsPSO> m_mapPSO;
 
     // 水波纹
-    Waves m_waves{ 128, 128, 1.0f, 0.03f, 4.0f, 0.2f };
+    Waves m_waves{ 256, 256, 0.25f, 0.03f, 2.0f, 0.2f };
     RenderItem* m_pWaveRItem = nullptr;
-    std::vector<Vertex>* m_pWavesVec = nullptr;
 
     // 摄像机
     // 以(0, 0, -m_radius) 为初始位置

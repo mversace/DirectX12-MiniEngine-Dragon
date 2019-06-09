@@ -33,7 +33,7 @@ __declspec(align(16)) struct PassConstants
     Math::Vector3 eyePosW = { 0.0f, 0.0f, 0.0f };     // 观察点也就是摄像机位置
     Math::Vector4 ambientLight = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-    Math::Vector4 FogColor = { 0.7f, 0.7f, 0.7f, 0.1f };
+    Math::Vector4 FogColor = { 0.7f, 0.7f, 0.7f, 0.0f };
     float gFogStart = 50.0f;
     float gFogRange = 200.0f;
     DirectX::XMFLOAT2 pad;

@@ -207,6 +207,9 @@
     <ClCompile Include="Core\Graphics\Pipeline\CommandSignature.cpp">
       <Filter>Core\Graphics\Pipeline</Filter>
     </ClCompile>
+    <ClCompile Include="BlurFilter.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Math\BoundingPlane.h">
@@ -376,6 +379,9 @@
     </ClInclude>
     <ClInclude Include="Core\Graphics\Pipeline\CommandSignature.h">
       <Filter>Core\Graphics\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="BlurFilter.h">
+      <Filter>源文件</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -887,6 +893,12 @@
       <Filter>Shaders\default</Filter>
     </FxCompile>
     <FxCompile Include="Core\Shaders\waveVS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\blurVertCS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\blurHorzCS.hlsl">
       <Filter>Shaders\default</Filter>
     </FxCompile>
   </ItemGroup>

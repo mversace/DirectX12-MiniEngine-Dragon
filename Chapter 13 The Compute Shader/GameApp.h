@@ -8,6 +8,7 @@
 #include "Camera.h"
 #include "d3dUtil.h"
 #include "Waves.h"
+#include "BlurFilter.h"
 
 class RootSignature;
 class GraphicsPSO;
@@ -80,6 +81,9 @@ private:
     // 水波纹
     Waves m_waves{ 256, 256, 0.25f, 0.03f, 2.0f, 0.2f };
     RenderItem* m_pWaveRItem = nullptr;
+
+    // 模糊效果对象
+    BlurFilter m_blurFilter;
 
     // 摄像机
     // 以(0, 0, -m_radius) 为初始位置

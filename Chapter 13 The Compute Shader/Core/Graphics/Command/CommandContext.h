@@ -240,7 +240,7 @@ public:
 
     // 设置流水线状态
     void SetPipelineState(const GraphicsPSO& PSO);
-    void SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants);
+    void SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants, UINT Offset = 0);
     void SetConstant(UINT RootIndex, DWParam Val, UINT Offset = 0);
     void SetConstants(UINT RootIndex, DWParam X);
     void SetConstants(UINT RootIndex, DWParam X, DWParam Y);
@@ -298,7 +298,7 @@ public:
     void SetRootSignature(const RootSignature& RootSig);
 
     void SetPipelineState(const ComputePSO& PSO);
-    void SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants);
+    void SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants, UINT Offset = 0);
     void SetConstant(UINT RootIndex, DWParam Val, UINT Offset = 0);
     void SetConstants(UINT RootIndex, DWParam X);
     void SetConstants(UINT RootIndex, DWParam X, DWParam Y);
@@ -456,9 +456,9 @@ inline void GraphicsContext::SetPipelineState(const GraphicsPSO& PSO)
     m_CurGraphicsPipelineState = PipelineState;
 }
 
-inline void GraphicsContext::SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants)
+inline void GraphicsContext::SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants, UINT Offset /* = 0 */)
 {
-    m_CommandList->SetGraphicsRoot32BitConstants(RootIndex, NumConstants, pConstants, 0);
+    m_CommandList->SetGraphicsRoot32BitConstants(RootIndex, NumConstants, pConstants, Offset);
 }
 
 inline void GraphicsContext::SetConstant(UINT RootEntry, DWParam Val, UINT Offset)
@@ -620,9 +620,9 @@ inline void ComputeContext::SetPipelineState(const ComputePSO& PSO)
     m_CurComputePipelineState = PipelineState;
 }
 
-inline void ComputeContext::SetConstantArray(UINT RootEntry, UINT NumConstants, const void* pConstants)
+inline void ComputeContext::SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants, UINT Offset /* = 0 */)
 {
-    m_CommandList->SetComputeRoot32BitConstants(RootEntry, NumConstants, pConstants, 0);
+    m_CommandList->SetComputeRoot32BitConstants(RootIndex, NumConstants, pConstants, Offset);
 }
 
 inline void ComputeContext::SetConstant(UINT RootEntry, DWParam Val, UINT Offset)

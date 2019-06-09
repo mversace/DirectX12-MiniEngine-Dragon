@@ -96,6 +96,7 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BlurFilter.cpp" />
     <ClCompile Include="Core\CameraController.cpp" />
     <ClCompile Include="Core\EngineProfiling.cpp" />
     <ClCompile Include="Core\EngineTuning.cpp" />
@@ -139,6 +140,7 @@
     <ClCompile Include="Waves.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BlurFilter.h" />
     <ClInclude Include="Core\CameraController.h" />
     <ClInclude Include="Core\EngineProfiling.h" />
     <ClInclude Include="Core\EngineTuning.h" />
@@ -280,6 +282,19 @@
     <FxCompile Include="Core\Shaders\BloomExtractAndDownsampleHdrCS.hlsl" />
     <FxCompile Include="Core\Shaders\BloomExtractAndDownsampleLdrCS.hlsl" />
     <FxCompile Include="Core\Shaders\BlurCS.hlsl" />
+    <FxCompile Include="Core\Shaders\blurHorzCS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <FileType>Document</FileType>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\blurVertCS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    </FxCompile>
     <FxCompile Include="Core\Shaders\BoundNeighborhoodCS.hlsl" />
     <FxCompile Include="Core\Shaders\BufferCopyPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>

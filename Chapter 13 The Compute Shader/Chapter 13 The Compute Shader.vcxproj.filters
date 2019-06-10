@@ -210,6 +210,9 @@
     <ClCompile Include="BlurFilter.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Core\sobelFilter.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Math\BoundingPlane.h">
@@ -381,6 +384,9 @@
       <Filter>Core\Graphics\Pipeline</Filter>
     </ClInclude>
     <ClInclude Include="BlurFilter.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\sobelFilter.h">
       <Filter>源文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -899,6 +905,12 @@
       <Filter>Shaders\default</Filter>
     </FxCompile>
     <FxCompile Include="Core\Shaders\blurHorzCS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\sobelCS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\compositeCS.hlsl">
       <Filter>Shaders\default</Filter>
     </FxCompile>
   </ItemGroup>

@@ -132,6 +132,7 @@
     <ClCompile Include="Core\Math\Frustum.cpp" />
     <ClCompile Include="Core\Math\Random.cpp" />
     <ClCompile Include="Core\pch.cpp" />
+    <ClCompile Include="Core\sobelFilter.cpp" />
     <ClCompile Include="Core\SystemTime.cpp" />
     <ClCompile Include="Core\Utility.cpp" />
     <ClCompile Include="GameApp.cpp" />
@@ -190,6 +191,7 @@
     <ClInclude Include="Core\Math\Transform.h" />
     <ClInclude Include="Core\Math\Vector.h" />
     <ClInclude Include="Core\pch.h" />
+    <ClInclude Include="Core\sobelFilter.h" />
     <ClInclude Include="Core\SystemTime.h" />
     <ClInclude Include="Core\Utility.h" />
     <ClInclude Include="Core\VectorMath.h" />
@@ -303,6 +305,12 @@
     <FxCompile Include="Core\Shaders\CameraMotionBlurPrePassCS.hlsl" />
     <FxCompile Include="Core\Shaders\CameraMotionBlurPrePassLinearZCS.hlsl" />
     <FxCompile Include="Core\Shaders\CameraVelocityCS.hlsl" />
+    <FxCompile Include="Core\Shaders\compositeCS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    </FxCompile>
     <FxCompile Include="Core\Shaders\CopyBackPostBufferCS.hlsl" />
     <FxCompile Include="Core\Shaders\DebugDrawHistogramCS.hlsl" />
     <FxCompile Include="Core\Shaders\DebugLuminanceHdr2CS.hlsl" />
@@ -363,6 +371,12 @@
     <FxCompile Include="Core\Shaders\GenerateMipsLinearOddCS.hlsl" />
     <FxCompile Include="Core\Shaders\GenerateMipsLinearOddXCS.hlsl" />
     <FxCompile Include="Core\Shaders\GenerateMipsLinearOddYCS.hlsl" />
+    <FxCompile Include="Core\Shaders\sobelCS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    </FxCompile>
     <FxCompile Include="Core\Shaders\vecAdd.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>

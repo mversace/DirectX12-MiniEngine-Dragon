@@ -9,6 +9,7 @@
 #include "d3dUtil.h"
 #include "Waves.h"
 #include "BlurFilter.h"
+#include "sobelFilter.h"
 
 class RootSignature;
 class GraphicsPSO;
@@ -84,6 +85,8 @@ private:
 
     // 模糊效果对象
     BlurFilter m_blurFilter;
+    // sobel描边
+    SobelFilter m_sobelFilter;
 
     // 摄像机
     // 以(0, 0, -m_radius) 为初始位置

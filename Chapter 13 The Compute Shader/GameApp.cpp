@@ -46,6 +46,7 @@ void GameApp::Startup(void)
 //    testComputerWork();
     m_waves.init();
     m_blurFilter.init(Graphics::g_SceneColorBuffer.GetFormat());
+    m_sobelFilter.init(Graphics::g_SceneColorBuffer.GetFormat());
 
     Graphics::g_SceneColorBuffer.SetClearColor({ 0.7f, 0.7f, 0.7f });
 
@@ -142,6 +143,7 @@ void GameApp::Cleanup(void)
 
     m_waves.Destory();
     m_blurFilter.destory();
+    m_sobelFilter.destroy();
 }
 
 void GameApp::Update(float deltaT)
@@ -209,6 +211,7 @@ void GameApp::Update(float deltaT)
 
     UpdateWaves(deltaT);
     m_blurFilter.update(Graphics::g_DisplayWidth, Graphics::g_DisplayHeight);
+    m_sobelFilter.update(Graphics::g_DisplayWidth, Graphics::g_DisplayHeight);
 }
 
 void GameApp::RenderScene(void)
@@ -254,14 +257,23 @@ void GameApp::RenderScene(void)
     gfxContext.SetPipelineState(m_mapPSO[E_EPT_TRANSPARENT]);
     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Transparent]);
 
-    if (g_blurCount)
+    if (g_blurCount || g_sobel)
     {
         // 先把上边的绘制做完
         gfxContext.Flush(true);
 
-        // 开始模糊处理
-        m_blurFilter.doBlur(Graphics::g_SceneColorBuffer, g_blurCount);
-        gfxContext.CopyBuffer(Graphics::g_SceneColorBuffer, m_blurFilter.getOutBuffer());
+        if (g_blurCount)
+        {
+            // 开始模糊处理
+            m_blurFilter.doBlur(Graphics::g_SceneColorBuffer, g_blurCount);
+            gfxContext.CopyBuffer(Graphics::g_SceneColorBuffer, m_blurFilter.getOutBuffer());
+        }
+
+        if (g_sobel)
+        {
+            // 开始描边
+            m_sobelFilter.doSobel(Graphics::g_SceneColorBuffer);
+        }
     }
     
     gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PRESENT);

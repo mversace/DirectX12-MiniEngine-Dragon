@@ -6,6 +6,8 @@
 
 // 模糊次数
 static int g_blurCount = 0;
+static bool g_sobel = true;
+static float flFrogAlpha = 0.1f;
 
 // 与HLSL一致
 struct Light
@@ -36,7 +38,7 @@ __declspec(align(16)) struct PassConstants
     Math::Vector3 eyePosW = { 0.0f, 0.0f, 0.0f };     // 观察点也就是摄像机位置
     Math::Vector4 ambientLight = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-    Math::Vector4 FogColor = { 0.7f, 0.7f, 0.7f, 0.0f };
+    Math::Vector4 FogColor = { 0.7f, 0.7f, 0.7f, flFrogAlpha };
     float gFogStart = 50.0f;
     float gFogRange = 200.0f;
     DirectX::XMFLOAT2 pad;

@@ -4,6 +4,9 @@
 #include <unordered_map>
 #include "VectorMath.h"
 
+// 模糊次数
+static int g_blurCount = 0;
+
 // 与HLSL一致
 struct Light
 {

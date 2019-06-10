@@ -254,12 +254,16 @@ void GameApp::RenderScene(void)
     gfxContext.SetPipelineState(m_mapPSO[E_EPT_TRANSPARENT]);
     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Transparent]);
 
-    // 先把上边的绘制做完
-    gfxContext.Flush(true);
+    if (g_blurCount)
+    {
+        // 先把上边的绘制做完
+        gfxContext.Flush(true);
 
-    // 开始模糊处理
-    m_blurFilter.doBlur(Graphics::g_SceneColorBuffer, 1);
-    gfxContext.CopyBuffer(Graphics::g_SceneColorBuffer, m_blurFilter.getOutBuffer());
+        // 开始模糊处理
+        m_blurFilter.doBlur(Graphics::g_SceneColorBuffer, g_blurCount);
+        gfxContext.CopyBuffer(Graphics::g_SceneColorBuffer, m_blurFilter.getOutBuffer());
+    }
+    
     gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PRESENT);
 
     gfxContext.Finish();

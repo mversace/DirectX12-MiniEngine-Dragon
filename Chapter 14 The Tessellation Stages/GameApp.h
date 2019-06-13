@@ -23,10 +23,14 @@ public:
 	virtual void RenderScene(void) override;
 
 private:
+    void buildQuadPatchGeo();
     void buildRenderItem();
     void drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderItem*>& ritems);
 
 private:
+    // 几何结构map
+    std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> m_mapGeometries;
+
     // 渲染队列
     enum class RenderLayer : int
     {
@@ -55,7 +59,7 @@ private:
     D3D12_RECT m_MainScissor;
 
     // 半径
-    float m_radius = 120.0f;
+    float m_radius = 60.0f;
 
     // x方向弧度，摄像机的x坐标增加，则m_xRotate增加
     float m_xRotate = -Math::XM_PIDIV4 / 2.0f;

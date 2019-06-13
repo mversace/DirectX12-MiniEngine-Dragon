@@ -82,6 +82,9 @@
     <Filter Include="Core\Graphics\Renderer">
       <UniqueIdentifier>{fd6a59c4-e585-405e-8948-2364bcbac00e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\default\tesseation">
+      <UniqueIdentifier>{541991b2-4315-48e2-964d-62a7d440936f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\Math\Frustum.cpp">
@@ -888,6 +891,18 @@
     </FxCompile>
     <FxCompile Include="Core\Shaders\default\waveVS.hlsl">
       <Filter>Shaders\default</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\default\tessVS.hlsl">
+      <Filter>Shaders\default\tesseation</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\default\tessHS.hlsl">
+      <Filter>Shaders\default\tesseation</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\default\tessPS.hlsl">
+      <Filter>Shaders\default\tesseation</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\default\tessDS.hlsl">
+      <Filter>Shaders\default\tesseation</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

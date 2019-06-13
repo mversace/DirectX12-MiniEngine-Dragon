@@ -6,15 +6,59 @@
 #include "TextureManager.h"
 #include "GameInput.h"
 
+#include "CompiledShaders/tessVS.h"
+#include "CompiledShaders/tessHS.h"
+#include "CompiledShaders/tessDS.h"
+#include "CompiledShaders/tessPS.h"
+
 void GameApp::Startup(void)
 {
-    
+    buildQuadPatchGeo();
+    buildRenderItem();
+
+    // 创建根签名
+    m_RootSignature.Reset(2, 0);
+    m_RootSignature[0].InitAsConstantBuffer(0);
+    m_RootSignature[1].InitAsConstantBuffer(1);
+    m_RootSignature.Finalize(L"tess RS", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+    // 创建PSO
+    D3D12_INPUT_ELEMENT_DESC mInputLayout[] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+    };
+
+    DXGI_FORMAT ColorFormat = Graphics::g_SceneColorBuffer.GetFormat();
+    DXGI_FORMAT DepthFormat = Graphics::g_SceneDepthBuffer.GetFormat();
+
+    // 画线
+    auto raster = Graphics::RasterizerDefaultCw;
+    raster.FillMode = D3D12_FILL_MODE_WIREFRAME;
+
+    // 默认PSO
+    GraphicsPSO defaultPSO;
+    defaultPSO.SetRootSignature(m_RootSignature);
+    defaultPSO.SetRasterizerState(raster);
+    defaultPSO.SetBlendState(Graphics::BlendDisable);
+    defaultPSO.SetDepthStencilState(Graphics::DepthStateReadWrite);
+    defaultPSO.SetInputLayout(_countof(mInputLayout), mInputLayout);
+    defaultPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH);
+    defaultPSO.SetRenderTargetFormat(ColorFormat, DepthFormat);
+    defaultPSO.SetVertexShader(g_ptessVS, sizeof(g_ptessVS));
+    defaultPSO.SetHullShader(g_ptessHS, sizeof(g_ptessHS));
+    defaultPSO.SetDomainShader(g_ptessDS, sizeof(g_ptessDS));
+    defaultPSO.SetPixelShader(g_ptessPS, sizeof(g_ptessPS));
+    defaultPSO.Finalize();
+
+    // 默认PSO
+    m_mapPSO[E_EPT_DEFAULT] = defaultPSO;
 }
 
 void GameApp::Cleanup(void)
 {
     m_mapPSO.clear();
 
+    m_mapGeometries.clear();
     m_vecAll.clear();
 }
 
@@ -97,6 +141,16 @@ void GameApp::RenderScene(void)
 
     gfxContext.SetRenderTarget(Graphics::g_SceneColorBuffer.GetRTV(), Graphics::g_SceneDepthBuffer.GetDSV());
 
+    gfxContext.SetRootSignature(m_RootSignature);
+
+    // 设置通用的常量缓冲区
+    PassConstants psc;
+    psc.viewProj = Transpose(m_ViewProjMatrix);
+    psc.eyePosW = m_Camera.GetPosition();
+    gfxContext.SetDynamicConstantBufferView(1, sizeof(psc), &psc);
+
+    gfxContext.SetPipelineState(m_mapPSO[E_EPT_DEFAULT]);
+    drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Opaque]);
     
     gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PRESENT);
 
@@ -105,10 +159,63 @@ void GameApp::RenderScene(void)
 
 void GameApp::drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderItem*>& ritems)
 {
-    
+    for (auto& item : ritems)
+    {
+        // 设置顶点
+        gfxContext.SetVertexBuffer(0, item->geo->vertexView);
+
+        // 设置索引
+        gfxContext.SetIndexBuffer(item->geo->indexView);
+
+        // 设置顶点拓扑结构
+        gfxContext.SetPrimitiveTopology(item->PrimitiveType);
+
+        // 设置渲染目标的转换矩阵、纹理矩阵、纹理控制矩阵
+        ObjectConstants obc;
+        obc.World = item->modeToWorld;
+        gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
+
+        gfxContext.DrawIndexed(item->IndexCount, item->StartIndexLocation, item->BaseVertexLocation);
+    }
+}
+
+void GameApp::buildQuadPatchGeo()
+{
+    std::vector<XMFLOAT3> vertices =
+    {
+        XMFLOAT3(-10.0f, 0.0f, +10.0f),
+        XMFLOAT3(+10.0f, 0.0f, +10.0f),
+        XMFLOAT3(-10.0f, 0.0f, -10.0f),
+        XMFLOAT3(+10.0f, 0.0f, -10.0f)
+    };
+
+    std::vector<std::int16_t> indices = { 0, 1, 2, 3 };
+
+    auto geo = std::make_unique<MeshGeometry>();
+    geo->name = "quadpatchGeo";
+
+    geo->createVertex(L"quadpatchGeo vertex", (UINT)vertices.size(), sizeof(Vertex), vertices.data());
+    geo->createIndex(L"quadpatchGeo index", (UINT)indices.size(), sizeof(std::uint16_t), indices.data());
+
+    SubmeshGeometry submesh;
+    submesh.IndexCount = (UINT)indices.size();
+    submesh.StartIndexLocation = 0;
+    submesh.BaseVertexLocation = 0;
+
+    geo->geoMap["quadpatch"] = submesh;
+
+    m_mapGeometries[geo->name] = std::move(geo);
 }
 
 void GameApp::buildRenderItem()
 {
-    
+    auto quadPatchRitem = std::make_unique<RenderItem>();
+    quadPatchRitem->geo = m_mapGeometries["quadpatchGeo"].get();
+    quadPatchRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST;
+    quadPatchRitem->IndexCount = quadPatchRitem->geo->geoMap["quadpatch"].IndexCount;
+    quadPatchRitem->StartIndexLocation = quadPatchRitem->geo->geoMap["quadpatch"].StartIndexLocation;
+    quadPatchRitem->BaseVertexLocation = quadPatchRitem->geo->geoMap["quadpatch"].BaseVertexLocation;
+    m_vecRenderItems[(int)RenderLayer::Opaque].push_back(quadPatchRitem.get());
+
+    m_vecAll.push_back(std::move(quadPatchRitem));
 }

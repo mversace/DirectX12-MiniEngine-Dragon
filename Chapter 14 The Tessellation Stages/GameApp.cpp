@@ -11,9 +11,15 @@
 #include "CompiledShaders/tessDS.h"
 #include "CompiledShaders/tessPS.h"
 
+#include "CompiledShaders/bezierVS.h"
+#include "CompiledShaders/bezierHS.h"
+#include "CompiledShaders/bezierDS.h"
+#include "CompiledShaders/bezierPS.h"
+
 void GameApp::Startup(void)
 {
     buildQuadPatchGeo();
+    buildBezierGeo();
     buildRenderItem();
 
     // 创建根签名
@@ -52,6 +58,16 @@ void GameApp::Startup(void)
 
     // 默认PSO
     m_mapPSO[E_EPT_DEFAULT] = defaultPSO;
+
+
+    // 贝塞尔曲线面的PSO
+    GraphicsPSO bezierPSO = defaultPSO;
+    bezierPSO.SetVertexShader(g_pbezierVS, sizeof(g_pbezierVS));
+    bezierPSO.SetHullShader(g_pbezierHS, sizeof(g_pbezierHS));
+    bezierPSO.SetDomainShader(g_pbezierDS, sizeof(g_pbezierDS));
+    bezierPSO.SetPixelShader(g_pbezierPS, sizeof(g_pbezierPS));
+    bezierPSO.Finalize();
+    m_mapPSO[E_EPT_BEZIER] = bezierPSO;
 }
 
 void GameApp::Cleanup(void)
@@ -64,6 +80,10 @@ void GameApp::Cleanup(void)
 
 void GameApp::Update(float deltaT)
 {
+    // 切换渲染目标
+    if (GameInput::IsFirstPressed(GameInput::kKey_f1))
+        m_bShowBezier = !m_bShowBezier;
+
     // 鼠标左键旋转
     if (GameInput::IsPressed(GameInput::kMouse0)) {
         // Make each pixel correspond to a quarter of a degree.
@@ -149,8 +169,16 @@ void GameApp::RenderScene(void)
     psc.eyePosW = m_Camera.GetPosition();
     gfxContext.SetDynamicConstantBufferView(1, sizeof(psc), &psc);
 
-    gfxContext.SetPipelineState(m_mapPSO[E_EPT_DEFAULT]);
-    drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Opaque]);
+    if (!m_bShowBezier)
+    {
+        gfxContext.SetPipelineState(m_mapPSO[E_EPT_DEFAULT]);
+        drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Opaque]);
+    }
+    else
+    {
+        gfxContext.SetPipelineState(m_mapPSO[E_EPT_BEZIER]);
+        drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Bezier]);
+    }
     
     gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PRESENT);
 
@@ -207,6 +235,59 @@ void GameApp::buildQuadPatchGeo()
     m_mapGeometries[geo->name] = std::move(geo);
 }
 
+void GameApp::buildBezierGeo()
+{
+    std::vector<XMFLOAT3> vertices =
+    {
+        // Row 0
+        XMFLOAT3(-10.0f, -10.0f, +15.0f),
+        XMFLOAT3(-5.0f,  0.0f, +15.0f),
+        XMFLOAT3(+5.0f,  0.0f, +15.0f),
+        XMFLOAT3(+10.0f, 0.0f, +15.0f),
+
+        // Row 1
+        XMFLOAT3(-15.0f, 0.0f, +5.0f),
+        XMFLOAT3(-5.0f,  0.0f, +5.0f),
+        XMFLOAT3(+5.0f,  20.0f, +5.0f),
+        XMFLOAT3(+15.0f, 0.0f, +5.0f),
+
+        // Row 2
+        XMFLOAT3(-15.0f, 0.0f, -5.0f),
+        XMFLOAT3(-5.0f,  0.0f, -5.0f),
+        XMFLOAT3(+5.0f,  0.0f, -5.0f),
+        XMFLOAT3(+15.0f, 0.0f, -5.0f),
+
+        // Row 3
+        XMFLOAT3(-10.0f, 10.0f, -15.0f),
+        XMFLOAT3(-5.0f,  0.0f, -15.0f),
+        XMFLOAT3(+5.0f,  0.0f, -15.0f),
+        XMFLOAT3(+25.0f, 10.0f, -15.0f)
+    };
+
+    std::vector<std::int16_t> indices =
+    {
+        0, 1, 2, 3,
+        4, 5, 6, 7,
+        8, 9, 10, 11,
+        12, 13, 14, 15
+    };
+
+    auto geo = std::make_unique<MeshGeometry>();
+    geo->name = "bezierGeo";
+
+    geo->createVertex(L"bezierGeo vertex", (UINT)vertices.size(), sizeof(Vertex), vertices.data());
+    geo->createIndex(L"bezierGeo index", (UINT)indices.size(), sizeof(std::uint16_t), indices.data());
+
+    SubmeshGeometry submesh;
+    submesh.IndexCount = (UINT)indices.size();
+    submesh.StartIndexLocation = 0;
+    submesh.BaseVertexLocation = 0;
+
+    geo->geoMap["quadpatch"] = submesh;
+
+    m_mapGeometries[geo->name] = std::move(geo);
+}
+
 void GameApp::buildRenderItem()
 {
     auto quadPatchRitem = std::make_unique<RenderItem>();
@@ -217,5 +298,14 @@ void GameApp::buildRenderItem()
     quadPatchRitem->BaseVertexLocation = quadPatchRitem->geo->geoMap["quadpatch"].BaseVertexLocation;
     m_vecRenderItems[(int)RenderLayer::Opaque].push_back(quadPatchRitem.get());
 
+    auto bezierRitem = std::make_unique<RenderItem>();
+    bezierRitem->geo = m_mapGeometries["bezierGeo"].get();
+    bezierRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_16_CONTROL_POINT_PATCHLIST;
+    bezierRitem->IndexCount = bezierRitem->geo->geoMap["quadpatch"].IndexCount;
+    bezierRitem->StartIndexLocation = bezierRitem->geo->geoMap["quadpatch"].StartIndexLocation;
+    bezierRitem->BaseVertexLocation = bezierRitem->geo->geoMap["quadpatch"].BaseVertexLocation;
+    m_vecRenderItems[(int)RenderLayer::Bezier].push_back(bezierRitem.get());
+
     m_vecAll.push_back(std::move(quadPatchRitem));
+    m_vecAll.push_back(std::move(bezierRitem));
 }

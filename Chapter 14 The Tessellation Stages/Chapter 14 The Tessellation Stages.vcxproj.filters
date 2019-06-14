@@ -85,6 +85,9 @@
     <Filter Include="Shaders\default\tesseation">
       <UniqueIdentifier>{541991b2-4315-48e2-964d-62a7d440936f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\default\bezier">
+      <UniqueIdentifier>{380c1745-2f14-40a5-a9be-1f803172eaf5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\Math\Frustum.cpp">
@@ -449,6 +452,7 @@
       <Filter>Shaders\Text</Filter>
     </None>
     <None Include="packages.config" />
+    <None Include="Core\Shaders\default\LightingUtil.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Core\Shaders\Bitonic32InnerSortCS.hlsl">
@@ -874,9 +878,6 @@
     <FxCompile Include="Core\Shaders\default\defaultVS.hlsl">
       <Filter>Shaders\default</Filter>
     </FxCompile>
-    <FxCompile Include="Core\Shaders\default\LightingUtil.hlsl">
-      <Filter>Shaders\default</Filter>
-    </FxCompile>
     <FxCompile Include="Core\Shaders\default\sobelCS.hlsl">
       <Filter>Shaders\default</Filter>
     </FxCompile>
@@ -903,6 +904,18 @@
     </FxCompile>
     <FxCompile Include="Core\Shaders\default\tessDS.hlsl">
       <Filter>Shaders\default\tesseation</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\default\bezierDS.hlsl">
+      <Filter>Shaders\default\bezier</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\default\bezierHS.hlsl">
+      <Filter>Shaders\default\bezier</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\default\bezierPS.hlsl">
+      <Filter>Shaders\default\bezier</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\default\bezierVS.hlsl">
+      <Filter>Shaders\default\bezier</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

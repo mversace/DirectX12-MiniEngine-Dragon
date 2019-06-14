@@ -19,7 +19,7 @@ struct HS_CONSTANT_DATA_OUTPUT
 };
 
 // 4个控制点的面片
-#define NUM_CONTROL_POINTS 16
+#define NUM_CONTROL_POINTS 4
 
 // 修补程序常量函数
 HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(

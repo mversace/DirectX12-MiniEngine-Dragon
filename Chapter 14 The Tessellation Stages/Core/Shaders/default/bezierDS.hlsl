@@ -30,7 +30,7 @@ struct HS_CONSTANT_DATA_OUTPUT
 	float InsideTessFactor[2]		: SV_InsideTessFactor; // 例如，对于四象限域，将为 Inside[2]
 };
 
-// 4个控制点的面片
+// 16个控制点的面片
 #define NUM_CONTROL_POINTS 16
 
 float4 BernsteinBasis(float t)
@@ -68,7 +68,7 @@ float4 dBernsteinBasis(float t)
 DS_OUTPUT main(
 	HS_CONSTANT_DATA_OUTPUT input,      // 曲面细分因子
 	float2 domain : SV_DomainLocation,  // 新插入顶点的uv坐标(基于面片内部)
-	const OutputPatch<HS_CONTROL_POINT_OUTPUT, NUM_CONTROL_POINTS> patch)   // 原始面片的4个点
+	const OutputPatch<HS_CONTROL_POINT_OUTPUT, NUM_CONTROL_POINTS> patch)   // 原始面片的16个点
 {
 	DS_OUTPUT Output;
 

@@ -23,6 +23,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter 13 The Compute Shad
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter 14 The Tessellation Stages", "Chapter 14 The Tessellation Stages\Chapter 14 The Tessellation Stages.vcxproj", "{F8F4C4A2-671E-4D6C-A379-2AFB1BA33651}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter 15 First Person Camera and Dynamic Indexing", "Chapter 15 First Person Camera and Dynamic Indexing\Chapter 15 First Person Camera and Dynamic Indexing.vcxproj", "{3F274302-4DA6-4653-BEA7-D8A4B0284FA4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -69,6 +71,10 @@ Global
 		{F8F4C4A2-671E-4D6C-A379-2AFB1BA33651}.Debug|x64.Build.0 = Debug|x64
 		{F8F4C4A2-671E-4D6C-A379-2AFB1BA33651}.Release|x64.ActiveCfg = Release|x64
 		{F8F4C4A2-671E-4D6C-A379-2AFB1BA33651}.Release|x64.Build.0 = Release|x64
+		{3F274302-4DA6-4653-BEA7-D8A4B0284FA4}.Debug|x64.ActiveCfg = Debug|x64
+		{3F274302-4DA6-4653-BEA7-D8A4B0284FA4}.Debug|x64.Build.0 = Debug|x64
+		{3F274302-4DA6-4653-BEA7-D8A4B0284FA4}.Release|x64.ActiveCfg = Release|x64
+		{3F274302-4DA6-4653-BEA7-D8A4B0284FA4}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

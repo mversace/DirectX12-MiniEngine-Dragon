@@ -22,23 +22,23 @@ using namespace GameCore;
 CameraController::CameraController( Camera& camera, Vector3 worldUp ) : m_TargetCamera( camera )
 {
     m_WorldUp = Normalize(worldUp);
-    m_WorldNorth = Normalize(Cross(m_WorldUp, Vector3(kXUnitVector)));
-    m_WorldEast = Cross(m_WorldNorth, m_WorldUp);
+    m_WorldNorth = Normalize(Cross(Vector3(kXUnitVector), m_WorldUp));
+    m_WorldEast = Cross(m_WorldUp, m_WorldNorth);
 
     m_HorizontalLookSensitivity = 2.0f;
     m_VerticalLookSensitivity = 2.0f;
-    m_MoveSpeed = 1000.0f;
-    m_StrafeSpeed = 1000.0f;
+    m_MoveSpeed = 100.0f;
+    m_StrafeSpeed = 100.0f;
     m_MouseSensitivityX = 1.0f;
     m_MouseSensitivityY = 1.0f;
 
     m_CurrentPitch = Sin(Dot(camera.GetForwardVec(), m_WorldUp));
 
-    Vector3 forward = Normalize(Cross(m_WorldUp, camera.GetRightVec()));
+    Vector3 forward = Normalize(Cross(camera.GetRightVec(), m_WorldUp));
     m_CurrentHeading = ATan2(-Dot(forward, m_WorldEast), Dot(forward, m_WorldNorth));
 
-    m_FineMovement = false;
-    m_FineRotation = false;
+    m_FineMovement = true;
+    m_FineRotation = true;
     m_Momentum = true;
 
     m_LastYaw = 0.0f;
@@ -96,9 +96,12 @@ void CameraController::Update( float deltaTime )
         ApplyMomentum(m_LastAscent, ascent, deltaTime);
     }
 
-    // don't apply momentum to mouse inputs
-    yaw += GameInput::GetAnalogInput(GameInput::kAnalogMouseX) * m_MouseSensitivityX;
-    pitch += GameInput::GetAnalogInput(GameInput::kAnalogMouseY) * m_MouseSensitivityY;
+    // 按住鼠标左键，才处理转向
+    if (GameInput::IsPressed(GameInput::kMouse0))
+    {
+        yaw += GameInput::GetAnalogInput(GameInput::kAnalogMouseX) * m_MouseSensitivityX;
+        pitch += GameInput::GetAnalogInput(GameInput::kAnalogMouseY) * m_MouseSensitivityY;
+    }
 
     m_CurrentPitch += pitch;
     m_CurrentPitch = XMMin( XM_PIDIV2, m_CurrentPitch);

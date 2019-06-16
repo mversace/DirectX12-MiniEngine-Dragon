@@ -7,6 +7,7 @@
 #include "PipelineState.h"
 #include "Camera.h"
 #include "d3dUtil.h"
+#include "CameraController.h"
 
 class RootSignature;
 class GraphicsPSO;
@@ -21,6 +22,9 @@ public:
 
 	virtual void Update(float deltaT) override;
 	virtual void RenderScene(void) override;
+
+private:
+    void cameraUpdate();   // camera更新
 
 private:
     void buildPSO();
@@ -66,6 +70,9 @@ private:
     Math::Matrix4 m_ViewProjMatrix;
     D3D12_VIEWPORT m_MainViewport;
     D3D12_RECT m_MainScissor;
+
+    // 摄像机控制器
+    std::auto_ptr<GameCore::CameraController> m_CameraController;
 
     // 半径
     float m_radius = 60.0f;

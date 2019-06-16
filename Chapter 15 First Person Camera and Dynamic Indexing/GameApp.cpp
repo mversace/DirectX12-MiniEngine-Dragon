@@ -16,6 +16,10 @@ void GameApp::Startup(void)
     buildGeo();
     buildMaterials();
     buildRenderItem();
+
+    m_Camera.SetEyeAtUp({ 0.0f, 2.0f, -15.0f }, { 0.0f, 2.0f, 0.0f }, Math::Vector3(Math::kYUnitVector));
+    m_Camera.SetZRange(1.0f, 10000.0f);
+    m_CameraController.reset(new GameCore::CameraController(m_Camera, Math::Vector3(Math::kYUnitVector)));
 }
 
 void GameApp::Cleanup(void)
@@ -32,52 +36,8 @@ void GameApp::Cleanup(void)
 
 void GameApp::Update(float deltaT)
 {
-    // 鼠标左键旋转
-    if (GameInput::IsPressed(GameInput::kMouse0)) {
-        // Make each pixel correspond to a quarter of a degree.
-        float dx = GameInput::GetAnalogInput(GameInput::kAnalogMouseX) - m_xLast;
-        float dy = GameInput::GetAnalogInput(GameInput::kAnalogMouseY) - m_yLast;
-
-        if (GameInput::IsPressed(GameInput::kMouse0))
-        {
-            // Update angles based on input to orbit camera around box.
-            m_xRotate += (dx - m_xDiff);
-            m_yRotate += (dy - m_yDiff);
-            m_yRotate = (std::max)(-0.0f + 0.1f, m_yRotate);
-            m_yRotate = (std::min)(XM_PIDIV2 - 0.1f, m_yRotate);
-        }
-
-        m_xDiff = dx;
-        m_yDiff = dy;
-
-        m_xLast += GameInput::GetAnalogInput(GameInput::kAnalogMouseX);
-        m_yLast += GameInput::GetAnalogInput(GameInput::kAnalogMouseY);
-    }
-    else
-    {
-        m_xDiff = 0.0f;
-        m_yDiff = 0.0f;
-        m_xLast = 0.0f;
-        m_yLast = 0.0f;
-    }
-
-    // 滚轮消息，放大缩小
-    if (float fl = GameInput::GetAnalogInput(GameInput::kAnalogMouseScroll))
-    {
-        if (fl > 0)
-            m_radius -= 5;
-        else
-            m_radius += 5;
-    }
-
-    // 调整摄像机位置
-    // 以(0, 0, -m_radius) 为初始位置
-    float x = m_radius* cosf(m_yRotate)* sinf(m_xRotate);
-    float y = m_radius* sinf(m_yRotate);
-    float z = -m_radius* cosf(m_yRotate)* cosf(m_xRotate);
-
-    m_Camera.SetEyeAtUp({ x, y, z }, Math::Vector3(Math::kZero), Math::Vector3(Math::kYUnitVector));
-    m_Camera.Update();
+    //cameraUpdate();
+    m_CameraController->Update(deltaT);
 
     m_ViewProjMatrix = m_Camera.GetViewProjMatrix();
 
@@ -416,4 +376,54 @@ void GameApp::buildRenderItem()
         m_vecRenderItems[(int)RenderLayer::Opaque].push_back(rightSphereRitem.get());
         m_vecAll.push_back(std::move(rightSphereRitem));
     }
+}
+
+void GameApp::cameraUpdate()
+{
+    // 鼠标左键旋转
+    if (GameInput::IsPressed(GameInput::kMouse0)) {
+        // Make each pixel correspond to a quarter of a degree.
+        float dx = GameInput::GetAnalogInput(GameInput::kAnalogMouseX) - m_xLast;
+        float dy = GameInput::GetAnalogInput(GameInput::kAnalogMouseY) - m_yLast;
+
+        if (GameInput::IsPressed(GameInput::kMouse0))
+        {
+            // Update angles based on input to orbit camera around box.
+            m_xRotate += (dx - m_xDiff);
+            m_yRotate += (dy - m_yDiff);
+            m_yRotate = (std::max)(-0.0f + 0.1f, m_yRotate);
+            m_yRotate = (std::min)(XM_PIDIV2 - 0.1f, m_yRotate);
+        }
+
+        m_xDiff = dx;
+        m_yDiff = dy;
+
+        m_xLast += GameInput::GetAnalogInput(GameInput::kAnalogMouseX);
+        m_yLast += GameInput::GetAnalogInput(GameInput::kAnalogMouseY);
+    }
+    else
+    {
+        m_xDiff = 0.0f;
+        m_yDiff = 0.0f;
+        m_xLast = 0.0f;
+        m_yLast = 0.0f;
+    }
+
+    // 滚轮消息，放大缩小
+    if (float fl = GameInput::GetAnalogInput(GameInput::kAnalogMouseScroll))
+    {
+        if (fl > 0)
+            m_radius -= 5;
+        else
+            m_radius += 5;
+    }
+
+    // 调整摄像机位置
+    // 以(0, 0, -m_radius) 为初始位置
+    float x = m_radius * cosf(m_yRotate) * sinf(m_xRotate);
+    float y = m_radius * sinf(m_yRotate);
+    float z = -m_radius * cosf(m_yRotate) * cosf(m_xRotate);
+
+    m_Camera.SetEyeAtUp({ x, y, z }, Math::Vector3(Math::kZero), Math::Vector3(Math::kYUnitVector));
+    m_Camera.Update();
 }

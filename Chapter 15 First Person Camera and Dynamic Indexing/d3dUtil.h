@@ -25,6 +25,10 @@ __declspec(align(16)) struct ObjectConstants
     Math::Matrix4 World = Math::Matrix4(Math::kIdentity); // 把物体从模型坐标转换到世界坐标
     Math::Matrix4 texTransform = Math::Matrix4(Math::kIdentity); // 该顶点所用纹理的转换矩阵
     Math::Matrix4 matTransform = Math::Matrix4(Math::kIdentity);
+    UINT MaterialIndex;
+    UINT ObjPad0;
+    UINT ObjPad1;
+    UINT ObjPad2;
 };
 
 struct PassConstants
@@ -47,9 +51,12 @@ struct PassConstants
 
 struct MaterialConstants
 {
-    Math::Vector4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
-    Math::Vector3 FresnelR0 = { 0.01f, 0.01f, 0.01f };
+    Math::Vector4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };  // 占据16字节
+    Math::Vector3 FresnelR0 = { 0.01f, 0.01f, 0.01f };  // 占据16字节
     float Roughness = 0.25f;
+    UINT DiffuseMapIndex = 0;
+    UINT MaterialPad0;      // 占位符，16字节对齐
+    UINT MaterialPad1;
 };
 
 
@@ -131,7 +138,7 @@ struct Material
     Math::Vector3 fresnelR0 = { 0.01f, 0.01f, 0.01f };  // 反射系数
     float roughness = 0.25f;    // 粗糙度
 
-    D3D12_CPU_DESCRIPTOR_HANDLE srv;    // 纹理视图
+    UINT DiffuseMapIndex = 0;   // 对应的SRV索引
 };
 
 struct RenderItem
@@ -139,6 +146,8 @@ struct RenderItem
     Math::Matrix4 modeToWorld = Math::Matrix4(Math::kIdentity);      // 模型坐标转世界坐标矩阵
     Math::Matrix4 texTransform = Math::Matrix4(Math::kIdentity);     // 纹理转换矩阵，主要用于顶点对应纹理的缩放
     Math::Matrix4 matTransform = Math::Matrix4(Math::kIdentity);     // 纹理额外控制矩阵，比如通过这个矩阵来动态移动纹理
+
+    UINT ObjCBIndex = -1;           // 索引，本项目是索引对应的纹理数据
 
     int IndexCount = 0;             // 索引个数
     int StartIndexLocation = 0;     // 索引起始位置

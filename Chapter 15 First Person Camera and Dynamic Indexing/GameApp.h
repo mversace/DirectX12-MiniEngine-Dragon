@@ -35,7 +35,7 @@ private:
 
 private:
     inline void makeMaterials(const std::string& name, const Math::Vector4& diffuseAlbedo, const Math::Vector3& fresnelR0, 
-        const float roughness, const std::string& materialName);
+        const float roughness, const std::string& materialName, int idx);
 
 private:
     // 几何结构map
@@ -51,6 +51,11 @@ private:
     };
     std::vector<RenderItem*> m_vecRenderItems[(int)RenderLayer::Count];
     std::vector<std::unique_ptr<RenderItem>> m_vecAll;
+
+    // 存储所有的纹理参数
+    StructuredBuffer m_mats;
+    // 存储所有的纹理资源
+    D3D12_CPU_DESCRIPTOR_HANDLE m_srvs[4];
 
 private:
     // 根签名

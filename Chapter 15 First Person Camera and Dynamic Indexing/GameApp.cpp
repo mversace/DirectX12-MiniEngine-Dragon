@@ -7,8 +7,8 @@
 #include "GameInput.h"
 
 #include "GeometryGenerator.h"
-#include "CompiledShaders/defaultVS.h"
-#include "CompiledShaders/defaultPS.h"
+#include "CompiledShaders/dynamicIndexDefaultPS.h"
+#include "CompiledShaders/dynamicIndexDefaultVS.h"
 
 void GameApp::Startup(void)
 {
@@ -32,6 +32,8 @@ void GameApp::Cleanup(void)
 
     for (auto& v : m_vecRenderItems)
         v.clear();
+
+    m_mats.Destroy();
 }
 
 void GameApp::Update(float deltaT)
@@ -84,6 +86,12 @@ void GameApp::RenderScene(void)
     psc.Lights[2].Strength = { 0.2f, 0.2f, 0.2f };
     gfxContext.SetDynamicConstantBufferView(1, sizeof(psc), &psc);
 
+    // 设置全部的纹理参数
+    gfxContext.SetBufferSRV(2, m_mats);
+
+    // 设置全部的纹理资源
+    gfxContext.SetDynamicDescriptors(3, 0, 4, &m_srvs[0]);
+
     gfxContext.SetPipelineState(m_mapPSO[E_EPT_DEFAULT]);
     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Opaque]);
     
@@ -110,15 +118,8 @@ void GameApp::drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderIte
         obc.World = item->modeToWorld;
         obc.texTransform = item->texTransform;
         obc.matTransform = item->matTransform;
+        obc.MaterialIndex = item->ObjCBIndex;
         gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
-
-        gfxContext.SetDynamicDescriptor(3, 0, item->mat->srv);
-
-        MaterialConstants mc;
-        mc.DiffuseAlbedo = item->mat->diffuseAlbedo;
-        mc.FresnelR0 = item->mat->fresnelR0;
-        mc.Roughness = item->mat->roughness;
-        gfxContext.SetDynamicConstantBufferView(2, sizeof(mc), &mc);
 
         gfxContext.DrawIndexed(item->IndexCount, item->StartIndexLocation, item->BaseVertexLocation);
     }
@@ -128,11 +129,11 @@ void GameApp::buildPSO()
 {
     // 创建根签名
     m_RootSignature.Reset(4, 1);
-    m_RootSignature.InitStaticSampler(0, Graphics::SamplerAnisoWrapDesc);
+    m_RootSignature.InitStaticSampler(0, Graphics::SamplerLinearWrapDesc);
     m_RootSignature[0].InitAsConstantBuffer(0);
     m_RootSignature[1].InitAsConstantBuffer(1);
-    m_RootSignature[2].InitAsConstantBuffer(2);
-    m_RootSignature[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1);
+    m_RootSignature[2].InitAsBufferSRV(0);
+    m_RootSignature[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4);
     m_RootSignature.Finalize(L"15 RS", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
     // 创建PSO
@@ -154,8 +155,8 @@ void GameApp::buildPSO()
     defaultPSO.SetInputLayout(_countof(mInputLayout), mInputLayout);
     defaultPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
     defaultPSO.SetRenderTargetFormat(ColorFormat, DepthFormat);
-    defaultPSO.SetVertexShader(g_pdefaultVS, sizeof(g_pdefaultVS));
-    defaultPSO.SetPixelShader(g_pdefaultPS, sizeof(g_pdefaultPS));
+    defaultPSO.SetVertexShader(g_pdynamicIndexDefaultVS, sizeof(g_pdynamicIndexDefaultVS));
+    defaultPSO.SetPixelShader(g_pdynamicIndexDefaultPS, sizeof(g_pdynamicIndexDefaultPS));
     defaultPSO.Finalize();
 
     // 默认PSO
@@ -272,7 +273,7 @@ void GameApp::buildGeo()
 }
 
 inline void GameApp::makeMaterials(const std::string& name, const Math::Vector4& diffuseAlbedo, const Math::Vector3& fresnelR0,
-    const float roughness, const std::string& materialName)
+    const float roughness, const std::string& materialName, int idx)
 {
     std::wstring strFile(materialName.begin(), materialName.end());
     auto item = std::make_unique<Material>(); 
@@ -280,17 +281,37 @@ inline void GameApp::makeMaterials(const std::string& name, const Math::Vector4&
     item->diffuseAlbedo = diffuseAlbedo;
     item->fresnelR0 = fresnelR0;
     item->roughness = roughness;
-    item->srv = TextureManager::LoadFromFile(strFile, true)->GetSRV();
+    item->DiffuseMapIndex = idx;
     m_mapMaterial[name] = std::move(item);
+
+    // 记录所有的SRV
+    m_srvs[idx] = TextureManager::LoadFromFile(strFile, true)->GetSRV();
 }
 
 void GameApp::buildMaterials()
 {
     TextureManager::Initialize(L"Textures/");
-    makeMaterials("brick", { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.02f, 0.02f, 0.02f }, 0.1f, "bricks");
-    makeMaterials("stone", { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.05f, 0.05f, 0.05f }, 0.3f, "stone");
-    makeMaterials("tile", { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.02f, 0.02f, 0.02f }, 0.3f, "tile");
-    makeMaterials("crate", { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.05f, 0.05f, 0.05f }, 0.2f, "WoodCrate01");
+    makeMaterials("brick", { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.02f, 0.02f, 0.02f }, 0.1f, "bricks", 0);
+    makeMaterials("stone", { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.05f, 0.05f, 0.05f }, 0.3f, "stone", 1);
+    makeMaterials("tile", { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.02f, 0.02f, 0.02f }, 0.3f, "tile", 2);
+    makeMaterials("crate", { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.05f, 0.05f, 0.05f }, 0.2f, "WoodCrate01", 3);
+
+    // 记录所有的纹理参数
+    std::vector<MaterialConstants> vv;
+    for (auto& item : m_mapMaterial)
+    {
+        MaterialConstants t;
+        t.DiffuseAlbedo = item.second->diffuseAlbedo;
+        t.FresnelR0 = item.second->fresnelR0;
+        t.Roughness = item.second->roughness;
+        t.DiffuseMapIndex = item.second->DiffuseMapIndex;
+        vv.push_back(std::move(t));
+    }
+    sort(vv.begin(), vv.end(), [](const MaterialConstants& one, const MaterialConstants& two)
+        {
+            return one.DiffuseMapIndex < two.DiffuseMapIndex;
+        });
+    m_mats.Create(L"mats", (UINT)vv.size(), sizeof(MaterialConstants), vv.data());
 }
 
 void GameApp::buildRenderItem()
@@ -300,6 +321,7 @@ void GameApp::buildRenderItem()
     boxRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(2.0f, 2.0f, 2.0f), Vector3(0.0f, 1.0f, 0.0f))));
     boxRitem->texTransform = Transpose(Matrix4(kIdentity));
     boxRitem->matTransform = Transpose(Matrix4(kIdentity));
+    boxRitem->ObjCBIndex = 3;
     boxRitem->mat = m_mapMaterial["crate"].get();
     boxRitem->geo = m_mapGeometries["shapeGeo"].get();
     boxRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -313,6 +335,7 @@ void GameApp::buildRenderItem()
     gridRitem->modeToWorld = Transpose(Matrix4(kIdentity));
     gridRitem->texTransform = Transpose(Matrix4::MakeScale({ 8.0f, 8.0f, 1.0f }));
     gridRitem->matTransform = Transpose(Matrix4(kIdentity));
+    gridRitem->ObjCBIndex = 2;
     gridRitem->mat = m_mapMaterial["tile"].get();
     gridRitem->geo = m_mapGeometries["shapeGeo"].get();
     gridRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -328,6 +351,7 @@ void GameApp::buildRenderItem()
         leftCylRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Vector3(-5.0f, 1.5f, -10.0f + i * 5.0f))));
         leftCylRitem->texTransform = Transpose(Matrix4(kIdentity));
         leftCylRitem->matTransform = Transpose(Matrix4(kIdentity));
+        leftCylRitem->ObjCBIndex = 0;
         leftCylRitem->mat = m_mapMaterial["brick"].get();
         leftCylRitem->geo = m_mapGeometries["shapeGeo"].get();
         leftCylRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -341,6 +365,7 @@ void GameApp::buildRenderItem()
         rightCylRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Vector3(+5.0f, 1.5f, -10.0f + i * 5.0f))));
         rightCylRitem->texTransform = Transpose(Matrix4(kIdentity));
         rightCylRitem->matTransform = Transpose(Matrix4(kIdentity));
+        rightCylRitem->ObjCBIndex = 0;
         rightCylRitem->mat = m_mapMaterial["brick"].get();
         rightCylRitem->geo = m_mapGeometries["shapeGeo"].get();
         rightCylRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -354,6 +379,7 @@ void GameApp::buildRenderItem()
         leftSphereRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Vector3(+5.0f, 3.5f, -10.0f + i * 5.0f))));
         leftSphereRitem->texTransform = Transpose(Matrix4(kIdentity));
         leftSphereRitem->matTransform = Transpose(Matrix4(kIdentity));
+        leftSphereRitem->ObjCBIndex = 1;
         leftSphereRitem->mat = m_mapMaterial["stone"].get();
         leftSphereRitem->geo = m_mapGeometries["shapeGeo"].get();
         leftSphereRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -367,6 +393,7 @@ void GameApp::buildRenderItem()
         rightSphereRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Vector3(-5.0f, 3.5f, -10.0f + i * 5.0f))));
         rightSphereRitem->texTransform = Transpose(Matrix4(kIdentity));
         rightSphereRitem->matTransform = Transpose(Matrix4(kIdentity));
+        rightSphereRitem->ObjCBIndex = 1;
         rightSphereRitem->mat = m_mapMaterial["stone"].get();
         rightSphereRitem->geo = m_mapGeometries["shapeGeo"].get();
         rightSphereRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;

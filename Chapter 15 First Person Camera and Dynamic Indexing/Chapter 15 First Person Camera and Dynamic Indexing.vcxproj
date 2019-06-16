@@ -134,6 +134,7 @@
     <ClCompile Include="Core\SystemTime.cpp" />
     <ClCompile Include="Core\Utility.cpp" />
     <ClCompile Include="GameApp.cpp" />
+    <ClCompile Include="GeometryGenerator.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -191,6 +192,7 @@
     <ClInclude Include="Core\VectorMath.h" />
     <ClInclude Include="d3dUtil.h" />
     <ClInclude Include="GameApp.h" />
+    <ClInclude Include="GeometryGenerator.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Core\Math\Functions.inl" />

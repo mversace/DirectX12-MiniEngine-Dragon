@@ -207,6 +207,9 @@
     <ClCompile Include="Core\Graphics\Pipeline\CommandSignature.cpp">
       <Filter>Core\Graphics\Pipeline</Filter>
     </ClCompile>
+    <ClCompile Include="GeometryGenerator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Math\BoundingPlane.h">
@@ -371,6 +374,9 @@
     <ClInclude Include="Core\Graphics\Pipeline\CommandSignature.h">
       <Filter>Core\Graphics\Pipeline</Filter>
     </ClInclude>
+    <ClInclude Include="GeometryGenerator.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Core\Math\Functions.inl">
@@ -452,7 +458,9 @@
       <Filter>Shaders\Text</Filter>
     </None>
     <None Include="packages.config" />
-    <None Include="Core\Shaders\default\LightingUtil.hlsl" />
+    <None Include="Core\Shaders\default\LightingUtil.hlsl">
+      <Filter>Shaders\default</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Core\Shaders\Bitonic32InnerSortCS.hlsl">

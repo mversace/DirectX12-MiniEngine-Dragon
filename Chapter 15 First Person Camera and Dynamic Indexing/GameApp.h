@@ -23,20 +23,26 @@ public:
 	virtual void RenderScene(void) override;
 
 private:
-    void buildQuadPatchGeo();
-    void buildBezierGeo();
+    void buildPSO();
+    void buildGeo();
+    void buildMaterials();
     void buildRenderItem();
     void drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderItem*>& ritems);
 
 private:
+    inline void makeMaterials(const std::string& name, const Math::Vector4& diffuseAlbedo, const Math::Vector3& fresnelR0, 
+        const float roughness, const std::string& materialName);
+
+private:
     // 几何结构map
     std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> m_mapGeometries;
+    // 纹理map
+    std::unordered_map<std::string, std::unique_ptr<Material>> m_mapMaterial;
 
     // 渲染队列
     enum class RenderLayer : int
     {
         Opaque = 0,
-        Bezier = 1,
         Count
     };
     std::vector<RenderItem*> m_vecRenderItems[(int)RenderLayer::Count];
@@ -50,11 +56,9 @@ private:
     enum ePSOType
     {
         E_EPT_DEFAULT = 1,
-        E_EPT_BEZIER = 2,
     };
     std::unordered_map<int, GraphicsPSO> m_mapPSO;
 
-    bool m_bShowBezier = true;
 
     // 摄像机
     // 以(0, 0, -m_radius) 为初始位置

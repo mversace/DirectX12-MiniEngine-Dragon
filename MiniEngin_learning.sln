@@ -25,6 +25,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter 14 The Tessellation
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter 15 First Person Camera and Dynamic Indexing", "Chapter 15 First Person Camera and Dynamic Indexing\Chapter 15 First Person Camera and Dynamic Indexing.vcxproj", "{3F274302-4DA6-4653-BEA7-D8A4B0284FA4}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter 16 Instancing and Frustum Culling", "Chapter 16 Instancing and Frustum Culling\Chapter 16 Instancing and Frustum Culling.vcxproj", "{ADD8FADA-5478-4425-904E-BEF51FAFFA77}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -75,6 +77,10 @@ Global
 		{3F274302-4DA6-4653-BEA7-D8A4B0284FA4}.Debug|x64.Build.0 = Debug|x64
 		{3F274302-4DA6-4653-BEA7-D8A4B0284FA4}.Release|x64.ActiveCfg = Release|x64
 		{3F274302-4DA6-4653-BEA7-D8A4B0284FA4}.Release|x64.Build.0 = Release|x64
+		{ADD8FADA-5478-4425-904E-BEF51FAFFA77}.Debug|x64.ActiveCfg = Debug|x64
+		{ADD8FADA-5478-4425-904E-BEF51FAFFA77}.Debug|x64.Build.0 = Debug|x64
+		{ADD8FADA-5478-4425-904E-BEF51FAFFA77}.Release|x64.ActiveCfg = Release|x64
+		{ADD8FADA-5478-4425-904E-BEF51FAFFA77}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

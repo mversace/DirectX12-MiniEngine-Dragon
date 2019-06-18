@@ -31,25 +31,15 @@ struct MaterialData
     float    Mpad2;   // 占位符
 };
 
-StructuredBuffer<MaterialData> gMaterialData : register(t0);
+StructuredBuffer<MaterialData> gMaterialData : register(t1);
 
-Texture2D gDiffuseMap[4] : register(t1);
+Texture2D gDiffuseMap[7] : register(t2);
 
 SamplerState gsamLinearWrap  : register(s0);
 
-cbuffer VSConstants : register(b0)
-{
-    float4x4 modelToWorld;
-    float4x4 gTexTransform;
-    float4x4 gMatTransform;
-    uint gMaterialIndex;
-    uint vPad0;   // 占位符
-    uint vPad1;   // 占位符
-    uint vPad2;   // 占位符
-};
 
 // Constant data that varies per frame.
-cbuffer cbPass : register(b1)
+cbuffer cbPass : register(b0)
 {
     float4x4 gViewProj;
     float3 gEyePosW;
@@ -76,12 +66,15 @@ struct VertexOut
     float3 PosW    : POSITION;
     float3 NormalW : NORMAL;
     float2 TexC    : TEXCOORD;
+
+    // 不允许篡改，插值
+    nointerpolation uint MatIndex  : MATINDEX;
 };
 
 float4 main(VertexOut pin) : SV_Target0
 {
     // 获取该纹理的参数
-    MaterialData matData = gMaterialData[gMaterialIndex];
+    MaterialData matData = gMaterialData[pin.MatIndex];
     float4 diffuseAlbedo = matData.DiffuseAlbedo;
     float3 fresnelR0 = matData.FresnelR0;
     float  roughness = matData.Roughness;

@@ -22,6 +22,7 @@ public:
 
 	virtual void Update(float deltaT) override;
 	virtual void RenderScene(void) override;
+    virtual void RenderUI(class GraphicsContext& gfxContext) override;
 
 private:
     void cameraUpdate();   // camera更新
@@ -34,14 +35,8 @@ private:
     void drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderItem*>& ritems);
 
 private:
-    inline void makeMaterials(const std::string& name, const Math::Vector4& diffuseAlbedo, const Math::Vector3& fresnelR0, 
-        const float roughness, const std::string& materialName, int idx);
-
-private:
     // 几何结构map
     std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> m_mapGeometries;
-    // 纹理map
-    std::unordered_map<std::string, std::unique_ptr<Material>> m_mapMaterial;
 
     // 渲染队列
     enum class RenderLayer : int
@@ -51,6 +46,11 @@ private:
     };
     std::vector<RenderItem*> m_vecRenderItems[(int)RenderLayer::Count];
     std::vector<std::unique_ptr<RenderItem>> m_vecAll;
+
+    StructuredBuffer m_mats;    // t1 存储所有的纹理属性
+    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_srvs;  // 存储所有的纹理资源
+
+    int m_nRenderObjCount = 0;
 
 private:
     // 根签名

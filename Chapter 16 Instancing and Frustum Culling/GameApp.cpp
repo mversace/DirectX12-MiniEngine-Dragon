@@ -6,6 +6,7 @@
 #include "TextureManager.h"
 #include "GameInput.h"
 
+#include <fstream>
 #include "GeometryGenerator.h"
 #include "CompiledShaders/dynamicIndexDefaultPS.h"
 #include "CompiledShaders/dynamicIndexDefaultVS.h"
@@ -27,11 +28,12 @@ void GameApp::Cleanup(void)
     m_mapPSO.clear();
 
     m_mapGeometries.clear();
-    m_mapMaterial.clear();
     m_vecAll.clear();
 
     for (auto& v : m_vecRenderItems)
         v.clear();
+
+    m_mats.Destroy();
 }
 
 void GameApp::Update(float deltaT)
@@ -71,11 +73,45 @@ void GameApp::RenderScene(void)
 
     gfxContext.SetRootSignature(m_RootSignature);
 
-    
+    // 设置通用的常量缓冲区
+    PassConstants psc;
+    psc.viewProj = Transpose(m_ViewProjMatrix);
+    psc.eyePosW = m_Camera.GetPosition();
+    psc.ambientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+    psc.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
+    psc.Lights[0].Strength = { 0.8f, 0.8f, 0.8f };
+    psc.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
+    psc.Lights[1].Strength = { 0.4f, 0.4f, 0.4f };
+    psc.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
+    psc.Lights[2].Strength = { 0.2f, 0.2f, 0.2f };
+    gfxContext.SetDynamicConstantBufferView(0, sizeof(psc), &psc);
+
+    // 设置全部的纹理参数
+    gfxContext.SetBufferSRV(2, m_mats);
+
+    // 设置全部的纹理资源
+    gfxContext.SetDynamicDescriptors(3, 0, 7, &m_srvs[0]);
+
+    gfxContext.SetPipelineState(m_mapPSO[E_EPT_DEFAULT]);
+    drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Opaque]);
     
     gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PRESENT);
 
     gfxContext.Finish();
+}
+
+void GameApp::RenderUI(class GraphicsContext& gfxContext)
+{
+    TextContext Text(gfxContext);
+    Text.Begin();
+
+    Text.ResetCursor(Graphics::g_DisplayWidth / 2, 5);
+
+    Text.SetColor(Color(0.0f, 1.0f, 0.0f));
+    Text.DrawString(std::wstring(L"object count = ") + std::to_wstring(m_nRenderObjCount));
+    Text.SetTextSize(20.0f);
+
+    Text.End();
 }
 
 void GameApp::drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderItem*>& ritems)
@@ -91,49 +127,200 @@ void GameApp::drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderIte
         // 设置顶点拓扑结构
         gfxContext.SetPrimitiveTopology(item->PrimitiveType);
 
-        // 设置渲染目标的转换矩阵、纹理矩阵、纹理控制矩阵
-        ObjectConstants obc;
-        obc.World = item->modeToWorld;
-        obc.texTransform = item->texTransform;
-        obc.matTransform = item->matTransform;
-        obc.MaterialIndex = item->ObjCBIndex;
-        gfxContext.SetDynamicConstantBufferView(0, sizeof(obc), &obc);
+        // 设置该绘制目标需要的纹理数据
+        gfxContext.SetBufferSRV(1, item->matrixs);
 
-        gfxContext.DrawIndexed(item->IndexCount, item->StartIndexLocation, item->BaseVertexLocation);
+        gfxContext.DrawIndexedInstanced(item->IndexCount, item->InstanceCount, item->StartIndexLocation, item->BaseVertexLocation, 0);
     }
 }
 
 void GameApp::buildPSO()
 {
-    
+    // 创建根签名
+    m_RootSignature.Reset(4, 1);
+    m_RootSignature.InitStaticSampler(0, Graphics::SamplerLinearWrapDesc);
+    m_RootSignature[0].InitAsConstantBuffer(0);     // 通用的常量缓冲区
+    m_RootSignature[1].InitAsBufferSRV(0);          // 渲染目标的矩阵数据
+    m_RootSignature[2].InitAsBufferSRV(1);          // 渲染目标的纹理属性
+    m_RootSignature[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 7);
+    m_RootSignature.Finalize(L"16 RS", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+    // 创建PSO
+    D3D12_INPUT_ELEMENT_DESC mInputLayout[] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    };
+
+    DXGI_FORMAT ColorFormat = Graphics::g_SceneColorBuffer.GetFormat();
+    DXGI_FORMAT DepthFormat = Graphics::g_SceneDepthBuffer.GetFormat();
+
+    GraphicsPSO defaultPSO;
+    defaultPSO.SetRootSignature(m_RootSignature);
+    defaultPSO.SetRasterizerState(Graphics::RasterizerDefaultCw);
+    defaultPSO.SetBlendState(Graphics::BlendDisable);
+    defaultPSO.SetDepthStencilState(Graphics::DepthStateReadWrite);
+    defaultPSO.SetInputLayout(_countof(mInputLayout), mInputLayout);
+    defaultPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+    defaultPSO.SetRenderTargetFormat(ColorFormat, DepthFormat);
+    defaultPSO.SetVertexShader(g_pdynamicIndexDefaultVS, sizeof(g_pdynamicIndexDefaultVS));
+    defaultPSO.SetPixelShader(g_pdynamicIndexDefaultPS, sizeof(g_pdynamicIndexDefaultPS));
+    defaultPSO.Finalize();
+
+    // 默认PSO
+    m_mapPSO[E_EPT_DEFAULT] = defaultPSO;
 }
 
 void GameApp::buildGeo()
 {
-    
-}
+    std::ifstream fin("Models/skull.txt");
 
-inline void GameApp::makeMaterials(const std::string& name, const Math::Vector4& diffuseAlbedo, const Math::Vector3& fresnelR0,
-    const float roughness, const std::string& materialName, int idx)
-{
-    std::wstring strFile(materialName.begin(), materialName.end());
-    auto item = std::make_unique<Material>(); 
-    item->name = name;
-    item->diffuseAlbedo = diffuseAlbedo;
-    item->fresnelR0 = fresnelR0;
-    item->roughness = roughness;
-    item->DiffuseMapIndex = idx;
-    m_mapMaterial[name] = std::move(item);
+    if (!fin)
+    {
+        MessageBox(0, L"Models/skull.txt not found.", 0, 0);
+        return;
+    }
+
+    UINT vcount = 0;
+    UINT tcount = 0;
+    std::string ignore;
+
+    fin >> ignore >> vcount;
+    fin >> ignore >> tcount;
+    fin >> ignore >> ignore >> ignore >> ignore;
+
+    std::vector<Vertex> vertices(vcount);
+    for (UINT i = 0; i < vcount; ++i)
+    {
+        fin >> vertices[i].Pos.x >> vertices[i].Pos.y >> vertices[i].Pos.z;
+        fin >> vertices[i].Normal.x >> vertices[i].Normal.y >> vertices[i].Normal.z;
+
+        XMVECTOR P = XMLoadFloat3(&vertices[i].Pos);
+
+        // 计算纹理坐标
+        XMFLOAT3 spherePos;
+        XMStoreFloat3(&spherePos, XMVector3Normalize(P));
+
+        float theta = atan2f(spherePos.z, spherePos.x);
+
+        // Put in [0, 2pi].
+        if (theta < 0.0f)
+            theta += XM_2PI;
+
+        float phi = acosf(spherePos.y);
+
+        float u = theta / (2.0f * XM_PI);
+        float v = phi / XM_PI;
+
+        vertices[i].TexC = { u, v };
+    }
+
+    fin >> ignore;
+    fin >> ignore;
+    fin >> ignore;
+
+    std::vector<std::int32_t> indices(3 * tcount);
+    for (UINT i = 0; i < tcount; ++i)
+    {
+        fin >> indices[i * 3 + 0] >> indices[i * 3 + 1] >> indices[i * 3 + 2];
+    }
+
+    fin.close();
+
+    auto geo = std::make_unique<MeshGeometry>();
+    geo->name = "skullGeo";
+
+    geo->createVertex(L"skullGeo vertex", (UINT)vertices.size(), sizeof(Vertex), vertices.data());
+    geo->createIndex(L"skullGeo index", (UINT)indices.size(), sizeof(std::int32_t), indices.data());
+
+    SubmeshGeometry submesh;
+    submesh.IndexCount = (UINT)indices.size();
+    submesh.StartIndexLocation = 0;
+    submesh.BaseVertexLocation = 0;
+
+    geo->geoMap["skull"] = submesh;
+
+    m_mapGeometries[geo->name] = std::move(geo);
 }
 
 void GameApp::buildMaterials()
 {
-    
+    std::vector<MaterialConstants> v = {
+        { { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.02f, 0.02f, 0.02f }, 0.1f, 0 },   // bricks
+        { { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.05f, 0.05f, 0.05f }, 0.3f, 1 },   // stone
+        { { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.02f, 0.02f, 0.02f }, 0.3f, 2 },   // tile
+        { { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.05f, 0.05f, 0.05f }, 0.2f, 3 },   // checkboard
+        { { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.10f, 0.10f, 0.10f }, 0.0f, 4 },   // ice
+        { { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.05f, 0.05f, 0.05f }, 0.2f, 5 },   // grass
+        { { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.05f, 0.05f, 0.05f }, 0.5f, 6 }   // skull
+    };
+
+    // 存入所有纹理属性
+    m_mats.Create(L"skull mats", (UINT)v.size(), sizeof(MaterialConstants), v.data());
+
+    m_srvs.resize(7);
+    TextureManager::Initialize(L"Textures/");
+    m_srvs[0] = TextureManager::LoadFromFile(L"bricks", true)->GetSRV();
+    m_srvs[1] = TextureManager::LoadFromFile(L"stone", true)->GetSRV();
+    m_srvs[2] = TextureManager::LoadFromFile(L"tile", true)->GetSRV();
+    m_srvs[3] = TextureManager::LoadFromFile(L"WoodCrate01", true)->GetSRV();
+    m_srvs[4] = TextureManager::LoadFromFile(L"ice", true)->GetSRV();
+    m_srvs[5] = TextureManager::LoadFromFile(L"grass", true)->GetSRV();
+    m_srvs[6] = TextureManager::LoadFromFile(L"white1x1", true)->GetSRV();
 }
 
 void GameApp::buildRenderItem()
 {
-    
+    // 绘制125个
+    int n = 5;
+    int nInstanceCount = n * n * n;
+
+    m_nRenderObjCount = nInstanceCount;
+
+    auto skullRitem = std::make_unique<RenderItem>();
+    skullRitem->geo = m_mapGeometries["skullGeo"].get();
+    skullRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    skullRitem->InstanceCount = nInstanceCount;
+    skullRitem->IndexCount = skullRitem->geo->geoMap["skull"].IndexCount;
+    skullRitem->StartIndexLocation = skullRitem->geo->geoMap["skull"].StartIndexLocation;
+    skullRitem->BaseVertexLocation = skullRitem->geo->geoMap["skull"].BaseVertexLocation;
+
+    // 为这个绘制目标添加nInstanceCount个矩阵数据，以分布在不同的世界位置
+    std::vector<ObjectConstants> v(nInstanceCount);
+    float width = 200.0f;
+    float height = 200.0f;
+    float depth = 200.0f;
+
+    float x = -0.5f * width;
+    float y = -0.5f * height;
+    float z = -0.5f * depth;
+    float dx = width / (n - 1);
+    float dy = height / (n - 1);
+    float dz = depth / (n - 1);
+    for (int k = 0; k < n; ++k)
+    {
+        for (int i = 0; i < n; ++i)
+        {
+            for (int j = 0; j < n; ++j)
+            {
+                int index = k * n * n + i * n + j;
+                // Position instanced along a 3D grid.
+                v[index].World = Math::Transpose(Math::Matrix4(
+                    { 1.0f, 0.0f, 0.0f },
+                    { 0.0f, 1.0f, 0.0f },
+                    { 0.0f, 0.0f, 1.0f },
+                    { x + j * dx, y + i * dy, z + k * dz }
+                ));
+                v[index].texTransform = Math::Transpose(Math::Matrix4::MakeScale({2.0f, 2.0f, 1.0f}));
+                v[index].MaterialIndex = index % m_mats.GetElementCount();
+            }
+        }
+    }
+
+    skullRitem->matrixs.Create(L"skull matrixs", nInstanceCount, sizeof(ObjectConstants), v.data());
+    m_vecRenderItems[(int)RenderLayer::Opaque].push_back(skullRitem.get());
+    m_vecAll.push_back(std::move(skullRitem));
 }
 
 void GameApp::cameraUpdate()

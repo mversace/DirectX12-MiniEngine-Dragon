@@ -20,7 +20,7 @@ struct Light
 
 #define MaxLights 16
 
-__declspec(align(16)) struct ObjectConstants
+struct ObjectConstants
 {
     Math::Matrix4 World = Math::Matrix4(Math::kIdentity); // 把物体从模型坐标转换到世界坐标
     Math::Matrix4 texTransform = Math::Matrix4(Math::kIdentity); // 该顶点所用纹理的转换矩阵
@@ -130,30 +130,21 @@ private:
     ByteAddressBuffer indexBuff;    // 索引buff
 };
 
-struct Material
-{
-    std::string name;
-
-    Math::Vector4 diffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };   // 漫反射系数
-    Math::Vector3 fresnelR0 = { 0.01f, 0.01f, 0.01f };  // 反射系数
-    float roughness = 0.25f;    // 粗糙度
-
-    UINT DiffuseMapIndex = 0;   // 对应的SRV索引
-};
-
 struct RenderItem
 {
-    Math::Matrix4 modeToWorld = Math::Matrix4(Math::kIdentity);      // 模型坐标转世界坐标矩阵
-    Math::Matrix4 texTransform = Math::Matrix4(Math::kIdentity);     // 纹理转换矩阵，主要用于顶点对应纹理的缩放
-    Math::Matrix4 matTransform = Math::Matrix4(Math::kIdentity);     // 纹理额外控制矩阵，比如通过这个矩阵来动态移动纹理
-
-    UINT ObjCBIndex = -1;           // 索引，本项目是索引对应的纹理数据
+    RenderItem() = default;
+    ~RenderItem()
+    {
+        matrixs.Destroy();
+    }
 
     int IndexCount = 0;             // 索引个数
+    int InstanceCount = 0;          // 绘制的数量
     int StartIndexLocation = 0;     // 索引起始位置
     int BaseVertexLocation = 0;     // 顶点起始位置
     D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
     MeshGeometry* geo = nullptr;    // 几何结构指针，包含对应的顶点以及索引
-    Material* mat = nullptr;        // 纹理指针，包含该渲染目标的纹理属性以及纹理视图
+
+    StructuredBuffer matrixs;     // t0 存储顶点的一些矩阵以及纹理属性id
 };

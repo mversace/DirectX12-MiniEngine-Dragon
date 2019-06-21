@@ -25,7 +25,7 @@ namespace Math
         // Call this function once per frame and after you've changed any state.  This
         // regenerates all matrices.  Calling it more or less than once per frame will break
         // temporal effects and cause unpredictable results.
-        void Update();
+        virtual void Update();
 
         // Public functions for controlling where the camera is and its orientation
         void SetEyeAtUp( Vector3 eye, Vector3 at, Vector3 up );
@@ -45,6 +45,8 @@ namespace Math
         const Matrix4& GetViewMatrix() const { return m_ViewMatrix; }
         const Matrix4& GetProjMatrix() const { return m_ProjMatrix; }
         const Matrix4& GetViewProjMatrix() const { return m_ViewProjMatrix; }
+        const Frustum& GetViewSpaceFrustum() const { return m_FrustumVS; }
+        const Frustum& GetWorldSpaceFrustum() const { return m_FrustumWS; }
 
     protected:
 
@@ -71,12 +73,18 @@ namespace Math
 
         // 从世界坐标系直接转换到投影坐标系
         Matrix4 m_ViewProjMatrix;    // i.e.  "World-To-Projection" matrix.
+
+        // 视锥体剪裁
+        Frustum m_FrustumVS;        // View-space view frustum
+        Frustum m_FrustumWS;        // World-space view frustum
     };
 
     class Camera : public BaseCamera
     {
     public:
         Camera();
+
+        virtual void Update() override;
 
         // Controls the view-to-projection matrix
         void SetPerspectiveMatrix( float verticalFovRadians, float aspectWidthOverHeight, float nearZClip, float farZClip );

@@ -47,6 +47,14 @@ void BaseCamera::Update()
     m_ViewProjMatrix = m_ProjMatrix * m_ViewMatrix;
 }
 
+void Camera::Update()
+{
+    BaseCamera::Update();
+
+    m_FrustumVS = Frustum(m_ProjMatrix, m_NearClip / m_FarClip);
+    m_FrustumWS = m_CameraToWorld * m_FrustumVS;
+}
+
 void Camera::UpdateProjMatrix( void )
 {
     DirectX::XMMATRIX mat = XMMatrixPerspectiveFovLH(m_VerticalFOV, m_AspectRatio, m_NearClip, m_FarClip);

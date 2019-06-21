@@ -20,6 +20,11 @@ cbuffer cbPass : register(b0)
     float4x4 gViewProj;
 };
 
+cbuffer cbPass1 : register(b1)
+{
+    int gDrawObjs[128];     // 数组中的每个元素都会被封装为float4，d3d12龙书727页
+};
+
 struct VertexIn
 {
     float3 PosL  : POSITION;
@@ -42,8 +47,7 @@ VertexOut main(VertexIn vin, uint instanceID : SV_InstanceID)
 {
     VertexOut vout = (VertexOut)0.0f;
 
-    // 取出该顶点的数据
-    InstanceData instData = gInstanceData[instanceID];
+    InstanceData instData = gInstanceData[gDrawObjs[instanceID]];
     float4x4 modelToWorld = instData.World;
     float4x4 texTransform = instData.TexTransform;
     float4x4 matTransform = instData.MatTransform;

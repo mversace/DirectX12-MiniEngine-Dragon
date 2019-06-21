@@ -26,6 +26,7 @@ public:
 
 private:
     void cameraUpdate();   // camera更新
+    void updateInstanceData();
 
 private:
     void buildPSO();
@@ -49,8 +50,6 @@ private:
 
     StructuredBuffer m_mats;    // t1 存储所有的纹理属性
     std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_srvs;  // 存储所有的纹理资源
-
-    int m_nRenderObjCount = 0;
 
 private:
     // 根签名

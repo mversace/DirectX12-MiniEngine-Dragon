@@ -23,7 +23,7 @@ namespace Math
     public:
         Frustum() {}
 
-        Frustum( const Matrix4& ProjectionMatrix );
+        Frustum( const Matrix4& ProjectionMatrix, float NearDivFar);
 
         enum CornerID
         {

@@ -98,6 +98,7 @@ void GpuTimeManager::BeginReadBack(void)
 {
     Graphics::g_CommandManager.WaitForFence(sm_Fence);
 
+    // 这里如果报错，基本都是shader出错了导致的
     D3D12_RANGE Range;
     Range.Begin = 0;
     Range.End = (sm_NumTimers * 2) * sizeof(uint64_t);

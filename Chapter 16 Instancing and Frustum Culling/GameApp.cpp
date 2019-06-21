@@ -7,6 +7,7 @@
 #include "GameInput.h"
 
 #include <fstream>
+#include <sstream>
 #include "GeometryGenerator.h"
 #include "CompiledShaders/dynamicIndexDefaultPS.h"
 #include "CompiledShaders/dynamicIndexDefaultVS.h"
@@ -18,8 +19,7 @@ void GameApp::Startup(void)
     buildMaterials();
     buildRenderItem();
 
-    m_Camera.SetEyeAtUp({ 0.0f, 2.0f, -15.0f }, { 0.0f, 2.0f, 0.0f }, Math::Vector3(Math::kYUnitVector));
-    m_Camera.SetZRange(1.0f, 10000.0f);
+    m_Camera.SetEyeAtUp({ 0.0f, 0.0f, -15.0f }, { 0.0f, 0.0f, 0.0f }, Math::Vector3(Math::kYUnitVector));
     m_CameraController.reset(new GameCore::CameraController(m_Camera, Math::Vector3(Math::kYUnitVector)));
 }
 
@@ -54,6 +54,8 @@ void GameApp::Update(float deltaT)
     m_MainScissor.top = 0;
     m_MainScissor.right = (LONG)Graphics::g_SceneColorBuffer.GetWidth();
     m_MainScissor.bottom = (LONG)Graphics::g_SceneColorBuffer.GetHeight();
+
+    updateInstanceData();
 }
 
 void GameApp::RenderScene(void)
@@ -87,10 +89,10 @@ void GameApp::RenderScene(void)
     gfxContext.SetDynamicConstantBufferView(0, sizeof(psc), &psc);
 
     // 设置全部的纹理参数
-    gfxContext.SetBufferSRV(2, m_mats);
+    gfxContext.SetBufferSRV(3, m_mats);
 
     // 设置全部的纹理资源
-    gfxContext.SetDynamicDescriptors(3, 0, 7, &m_srvs[0]);
+    gfxContext.SetDynamicDescriptors(4, 0, 7, &m_srvs[0]);
 
     gfxContext.SetPipelineState(m_mapPSO[E_EPT_DEFAULT]);
     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Opaque]);
@@ -105,10 +107,17 @@ void GameApp::RenderUI(class GraphicsContext& gfxContext)
     TextContext Text(gfxContext);
     Text.Begin();
 
-    Text.ResetCursor(Graphics::g_DisplayWidth / 2, 5);
-
+    Text.ResetCursor(Graphics::g_DisplayWidth / 2.0f, 5.0f);
     Text.SetColor(Color(0.0f, 1.0f, 0.0f));
-    Text.DrawString(std::wstring(L"object count = ") + std::to_wstring(m_nRenderObjCount));
+
+    for (auto& e : m_vecAll)
+    {
+        std::stringstream ss;
+        ss << e->name << " : " << e->visibileCount << " / " << e->allCount << "\n";
+
+        Text.DrawString(ss.str());
+    }
+    
     Text.SetTextSize(20.0f);
 
     Text.End();
@@ -128,21 +137,25 @@ void GameApp::drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderIte
         gfxContext.SetPrimitiveTopology(item->PrimitiveType);
 
         // 设置该绘制目标需要的纹理数据
-        gfxContext.SetBufferSRV(1, item->matrixs);
+        gfxContext.SetBufferSRV(2, item->matrixs);
 
-        gfxContext.DrawIndexedInstanced(item->IndexCount, item->InstanceCount, item->StartIndexLocation, item->BaseVertexLocation, 0);
+        // 设置需要绘制的目标索引
+        gfxContext.SetDynamicConstantBufferView(1, item->vDrawObjs.size() * sizeof(item->vDrawObjs[0]), item->vDrawObjs.data());
+        
+        gfxContext.DrawIndexedInstanced(item->IndexCount, item->visibileCount, item->StartIndexLocation, item->BaseVertexLocation, 0);
     }
 }
 
 void GameApp::buildPSO()
 {
     // 创建根签名
-    m_RootSignature.Reset(4, 1);
+    m_RootSignature.Reset(5, 1);
     m_RootSignature.InitStaticSampler(0, Graphics::SamplerLinearWrapDesc);
     m_RootSignature[0].InitAsConstantBuffer(0);     // 通用的常量缓冲区
-    m_RootSignature[1].InitAsBufferSRV(0);          // 渲染目标的矩阵数据
-    m_RootSignature[2].InitAsBufferSRV(1);          // 渲染目标的纹理属性
-    m_RootSignature[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 7);
+    m_RootSignature[1].InitAsConstantBuffer(1);     // 可渲染目标数组
+    m_RootSignature[2].InitAsBufferSRV(0);          // 渲染目标的矩阵数据
+    m_RootSignature[3].InitAsBufferSRV(1);          // 渲染目标的纹理属性
+    m_RootSignature[4].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 7);    // 渲染目标的纹理
     m_RootSignature.Finalize(L"16 RS", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
     // 创建PSO
@@ -190,6 +203,9 @@ void GameApp::buildGeo()
     fin >> ignore >> tcount;
     fin >> ignore >> ignore >> ignore >> ignore;
 
+    Math::Vector3 vMin = { FLT_MAX, FLT_MAX, FLT_MAX };
+    Math::Vector3 vMax = { FLT_MIN, FLT_MIN, FLT_MIN };
+
     std::vector<Vertex> vertices(vcount);
     for (UINT i = 0; i < vcount; ++i)
     {
@@ -214,6 +230,9 @@ void GameApp::buildGeo()
         float v = phi / XM_PI;
 
         vertices[i].TexC = { u, v };
+
+        vMin = Math::Min(vMin, Math::Vector3(P));
+        vMax = Math::Max(vMax, Math::Vector3(P));
     }
 
     fin >> ignore;
@@ -238,6 +257,8 @@ void GameApp::buildGeo()
     submesh.IndexCount = (UINT)indices.size();
     submesh.StartIndexLocation = 0;
     submesh.BaseVertexLocation = 0;
+    submesh.vMin = vMin;
+    submesh.vMax = vMax;
 
     geo->geoMap["skull"] = submesh;
 
@@ -276,18 +297,23 @@ void GameApp::buildRenderItem()
     int n = 5;
     int nInstanceCount = n * n * n;
 
-    m_nRenderObjCount = nInstanceCount;
+    int maxCount = Math::AlignUp(nInstanceCount * 4, 16) / 4;
 
     auto skullRitem = std::make_unique<RenderItem>();
+    skullRitem->name = "skull";
+    skullRitem->visibileCount = nInstanceCount;
+    skullRitem->allCount = nInstanceCount;
+    skullRitem->vDrawObjs.resize(maxCount);
     skullRitem->geo = m_mapGeometries["skullGeo"].get();
     skullRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-    skullRitem->InstanceCount = nInstanceCount;
     skullRitem->IndexCount = skullRitem->geo->geoMap["skull"].IndexCount;
     skullRitem->StartIndexLocation = skullRitem->geo->geoMap["skull"].StartIndexLocation;
     skullRitem->BaseVertexLocation = skullRitem->geo->geoMap["skull"].BaseVertexLocation;
+    skullRitem->vMin = skullRitem->geo->geoMap["skull"].vMin;
+    skullRitem->vMax = skullRitem->geo->geoMap["skull"].vMax;
 
     // 为这个绘制目标添加nInstanceCount个矩阵数据，以分布在不同的世界位置
-    std::vector<ObjectConstants> v(nInstanceCount);
+    skullRitem->vObjsData.resize(nInstanceCount);
     float width = 200.0f;
     float height = 200.0f;
     float depth = 200.0f;
@@ -306,19 +332,19 @@ void GameApp::buildRenderItem()
             {
                 int index = k * n * n + i * n + j;
                 // Position instanced along a 3D grid.
-                v[index].World = Math::Transpose(Math::Matrix4(
+                skullRitem->vObjsData[index].World = Math::Transpose(Math::Matrix4(
                     { 1.0f, 0.0f, 0.0f },
                     { 0.0f, 1.0f, 0.0f },
                     { 0.0f, 0.0f, 1.0f },
                     { x + j * dx, y + i * dy, z + k * dz }
                 ));
-                v[index].texTransform = Math::Transpose(Math::Matrix4::MakeScale({2.0f, 2.0f, 1.0f}));
-                v[index].MaterialIndex = index % m_mats.GetElementCount();
+                skullRitem->vObjsData[index].texTransform = Math::Transpose(Math::Matrix4::MakeScale({2.0f, 2.0f, 1.0f}));
+                skullRitem->vObjsData[index].MaterialIndex = index % m_mats.GetElementCount();
             }
         }
     }
 
-    skullRitem->matrixs.Create(L"skull matrixs", nInstanceCount, sizeof(ObjectConstants), v.data());
+    skullRitem->matrixs.Create(L"skull matrixs", nInstanceCount, sizeof(ObjectConstants), skullRitem->vObjsData.data());
     m_vecRenderItems[(int)RenderLayer::Opaque].push_back(skullRitem.get());
     m_vecAll.push_back(std::move(skullRitem));
 }
@@ -371,4 +397,29 @@ void GameApp::cameraUpdate()
 
     m_Camera.SetEyeAtUp({ x, y, z }, Math::Vector3(Math::kZero), Math::Vector3(Math::kYUnitVector));
     m_Camera.Update();
+}
+
+void GameApp::updateInstanceData()
+{
+    for (auto& e : m_vecAll)
+    {
+        e->visibileCount = 0;
+        for (int i = 0; i < (int)e->vObjsData.size(); ++i)
+        {
+            if (g_openFrustumCull)
+            {
+                auto& item = e->vObjsData[i];
+                auto vMin = Math::Vector3(Math::Transpose(item.World) * e->vMin);
+                auto vMax = Math::Vector3(Math::Transpose(item.World) * e->vMax);
+                if (m_Camera.GetWorldSpaceFrustum().IntersectBoundingBox(vMin, vMax))
+                {
+                    e->vDrawObjs[e->visibileCount++].x = i;
+                }
+            }
+            else
+            {
+                e->vDrawObjs[e->visibileCount++].x = i;
+            }
+        }
+    }
 }

@@ -6,6 +6,8 @@
 
 // 雾的浓度
 static float flFrogAlpha = 0.0f;
+// 是否开启视锥体剔除
+static bool g_openFrustumCull = true;
 
 // 与HLSL一致
 struct Light
@@ -82,6 +84,8 @@ struct SubmeshGeometry
     int IndexCount = 0;
     int StartIndexLocation = 0;
     int BaseVertexLocation = 0;
+    Math::Vector3 vMin;
+    Math::Vector3 vMax;
 };
 
 class StructuredBuffer;
@@ -138,13 +142,23 @@ struct RenderItem
         matrixs.Destroy();
     }
 
+    std::string name;
+
+    int visibileCount = 0;          // 绘制的数量 在镜头中的数量
+    int allCount = 0;               // 总数量
+
+    std::vector<Math::XMUINT4> vDrawObjs;  // 需要绘制的目标索引位置
+
     int IndexCount = 0;             // 索引个数
-    int InstanceCount = 0;          // 绘制的数量
     int StartIndexLocation = 0;     // 索引起始位置
     int BaseVertexLocation = 0;     // 顶点起始位置
     D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
     MeshGeometry* geo = nullptr;    // 几何结构指针，包含对应的顶点以及索引
 
+    std::vector<ObjectConstants> vObjsData;
     StructuredBuffer matrixs;     // t0 存储顶点的一些矩阵以及纹理属性id
+
+    Math::Vector3 vMin;
+    Math::Vector3 vMax;
 };

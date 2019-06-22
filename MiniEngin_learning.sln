@@ -27,6 +27,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter 15 First Person Cam
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter 16 Instancing and Frustum Culling", "Chapter 16 Instancing and Frustum Culling\Chapter 16 Instancing and Frustum Culling.vcxproj", "{ADD8FADA-5478-4425-904E-BEF51FAFFA77}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter 17 Picking", "Chapter 17 Picking\Chapter 17 Picking.vcxproj", "{DC86DA3F-B166-464B-8147-BC18A9FA18DE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -81,6 +83,10 @@ Global
 		{ADD8FADA-5478-4425-904E-BEF51FAFFA77}.Debug|x64.Build.0 = Debug|x64
 		{ADD8FADA-5478-4425-904E-BEF51FAFFA77}.Release|x64.ActiveCfg = Release|x64
 		{ADD8FADA-5478-4425-904E-BEF51FAFFA77}.Release|x64.Build.0 = Release|x64
+		{DC86DA3F-B166-464B-8147-BC18A9FA18DE}.Debug|x64.ActiveCfg = Debug|x64
+		{DC86DA3F-B166-464B-8147-BC18A9FA18DE}.Debug|x64.Build.0 = Debug|x64
+		{DC86DA3F-B166-464B-8147-BC18A9FA18DE}.Release|x64.ActiveCfg = Release|x64
+		{DC86DA3F-B166-464B-8147-BC18A9FA18DE}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

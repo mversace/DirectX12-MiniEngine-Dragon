@@ -27,13 +27,14 @@ public:
 private:
     void cameraUpdate();   // camera更新
     void updateInstanceData();
+    void checkPick();
 
 private:
     void buildPSO();
     void buildGeo();
     void buildMaterials();
     void buildRenderItem();
-    void drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderItem*>& ritems);
+    void drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderItem*>& ritems, bool bOutLine = false);
 
 private:
     // 几何结构map
@@ -59,6 +60,7 @@ private:
     enum ePSOType
     {
         E_EPT_DEFAULT = 1,
+        E_EPT_OUTLINE = 2,
     };
     std::unordered_map<int, GraphicsPSO> m_mapPSO;
 
@@ -71,7 +73,7 @@ private:
     D3D12_RECT m_MainScissor;
 
     // 摄像机控制器
-    std::auto_ptr<GameCore::CameraController> m_CameraController;
+    std::unique_ptr<GameCore::CameraController> m_CameraController;
 
     // 半径
     float m_radius = 60.0f;

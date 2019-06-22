@@ -115,6 +115,12 @@ public:
         indexView = indexBuff.IndexBufferView();
     }
 
+    void storeVertexAndIndex(std::vector<Vertex>& vertex, std::vector<std::int32_t>& index)
+    {
+        vecVertex = std::move(vertex);
+        vecIndex = std::move(index);
+    }
+
     void destroy()
     {
         vertexBuff.Destroy();
@@ -128,6 +134,10 @@ public:
 
     D3D12_VERTEX_BUFFER_VIEW vertexView;
     D3D12_INDEX_BUFFER_VIEW indexView;
+
+    // 存储顶点和索引数据
+    std::vector<Vertex> vecVertex;
+    std::vector<std::int32_t> vecIndex;
 
 private:
     StructuredBuffer vertexBuff;    // 顶点buff
@@ -144,10 +154,13 @@ struct RenderItem
 
     std::string name;
 
-    int visibileCount = 0;          // 绘制的数量 在镜头中的数量
     int allCount = 0;               // 总数量
 
+    int visibileCount = 0;          // 绘制的数量 在镜头中的数量
     std::vector<Math::XMUINT4> vDrawObjs;  // 需要绘制的目标索引位置
+
+    int selectedCount = 0;          // 选中的数量，需要描边
+    std::vector<Math::XMUINT4> vDrawOutLineObjs;  // 需要描边的目标索引位置
 
     int IndexCount = 0;             // 索引个数
     int StartIndexLocation = 0;     // 索引起始位置

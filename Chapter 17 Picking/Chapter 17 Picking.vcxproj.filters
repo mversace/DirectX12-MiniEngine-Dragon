@@ -931,6 +931,12 @@
     <FxCompile Include="Core\Shaders\default\dynamicIndexDefaultVS.hlsl">
       <Filter>Shaders\default</Filter>
     </FxCompile>
+    <FxCompile Include="Core\Shaders\default\dynamicIndexOutLinePS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\default\dynamicIndexOutLineVS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Core\Graphics\Command\readme_command.txt">

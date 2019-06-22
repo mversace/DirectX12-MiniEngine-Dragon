@@ -9,8 +9,12 @@
 #include <fstream>
 #include <sstream>
 #include "GeometryGenerator.h"
+#include <DirectXCollision.h>
+
 #include "CompiledShaders/dynamicIndexDefaultPS.h"
 #include "CompiledShaders/dynamicIndexDefaultVS.h"
+#include "CompiledShaders/dynamicIndexOutLinePS.h"
+#include "CompiledShaders/dynamicIndexOutLineVS.h"
 
 void GameApp::Startup(void)
 {
@@ -56,6 +60,7 @@ void GameApp::Update(float deltaT)
     m_MainScissor.bottom = (LONG)Graphics::g_SceneColorBuffer.GetHeight();
 
     updateInstanceData();
+    checkPick();
 }
 
 void GameApp::RenderScene(void)
@@ -96,7 +101,11 @@ void GameApp::RenderScene(void)
 
     gfxContext.SetPipelineState(m_mapPSO[E_EPT_DEFAULT]);
     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Opaque]);
-    
+
+    // 绘制描边
+    gfxContext.SetPipelineState(m_mapPSO[E_EPT_OUTLINE]);
+    drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Opaque], true);
+
     gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PRESENT);
 
     gfxContext.Finish();
@@ -123,10 +132,12 @@ void GameApp::RenderUI(class GraphicsContext& gfxContext)
     Text.End();
 }
 
-void GameApp::drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderItem*>& ritems)
+void GameApp::drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderItem *>& ritems, bool bOutLine /* = false */)
 {
     for (auto& item : ritems)
     {
+        if (bOutLine && item->selectedCount == 0) continue;
+
         // 设置顶点
         gfxContext.SetVertexBuffer(0, item->geo->vertexView);
 
@@ -139,10 +150,20 @@ void GameApp::drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderIte
         // 设置该绘制目标需要的纹理数据
         gfxContext.SetBufferSRV(2, item->matrixs);
 
-        // 设置需要绘制的目标索引
-        gfxContext.SetDynamicConstantBufferView(1, item->vDrawObjs.size() * sizeof(item->vDrawObjs[0]), item->vDrawObjs.data());
-        
-        gfxContext.DrawIndexedInstanced(item->IndexCount, item->visibileCount, item->StartIndexLocation, item->BaseVertexLocation, 0);
+        if (bOutLine)
+        {
+            // 设置需要绘制的目标索引
+            gfxContext.SetDynamicConstantBufferView(1, item->vDrawOutLineObjs.size() * sizeof(item->vDrawOutLineObjs[0]), item->vDrawOutLineObjs.data());
+
+            gfxContext.DrawIndexedInstanced(item->IndexCount, item->selectedCount, item->StartIndexLocation, item->BaseVertexLocation, 0);
+        }
+        else
+        {
+            // 设置需要绘制的目标索引
+            gfxContext.SetDynamicConstantBufferView(1, item->vDrawObjs.size() * sizeof(item->vDrawObjs[0]), item->vDrawObjs.data());
+
+            gfxContext.DrawIndexedInstanced(item->IndexCount, item->visibileCount, item->StartIndexLocation, item->BaseVertexLocation, 0);
+        }
     }
 }
 
@@ -183,6 +204,18 @@ void GameApp::buildPSO()
 
     // 默认PSO
     m_mapPSO[E_EPT_DEFAULT] = defaultPSO;
+
+    // 描边PSO
+    GraphicsPSO outlinePSO = defaultPSO;
+    auto blend = Graphics::BlendTraditional;
+    blend.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+    outlinePSO.SetBlendState(blend);
+    outlinePSO.SetVertexShader(g_pdynamicIndexOutLineVS, sizeof(g_pdynamicIndexOutLineVS));
+    outlinePSO.SetPixelShader(g_pdynamicIndexOutLinePS, sizeof(g_pdynamicIndexOutLinePS));
+    outlinePSO.Finalize();
+
+    // 默认PSO
+    m_mapPSO[E_EPT_OUTLINE] = outlinePSO;
 }
 
 void GameApp::buildGeo()
@@ -252,9 +285,10 @@ void GameApp::buildGeo()
 
     geo->createVertex(L"skullGeo vertex", (UINT)vertices.size(), sizeof(Vertex), vertices.data());
     geo->createIndex(L"skullGeo index", (UINT)indices.size(), sizeof(std::int32_t), indices.data());
+    geo->storeVertexAndIndex(vertices, indices);
 
     SubmeshGeometry submesh;
-    submesh.IndexCount = (UINT)indices.size();
+    submesh.IndexCount = 3 * tcount;
     submesh.StartIndexLocation = 0;
     submesh.BaseVertexLocation = 0;
     submesh.vMin = vMin;
@@ -304,6 +338,7 @@ void GameApp::buildRenderItem()
     skullRitem->visibileCount = nInstanceCount;
     skullRitem->allCount = nInstanceCount;
     skullRitem->vDrawObjs.resize(maxCount);
+    skullRitem->vDrawOutLineObjs.resize(maxCount);
     skullRitem->geo = m_mapGeometries["skullGeo"].get();
     skullRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     skullRitem->IndexCount = skullRitem->geo->geoMap["skull"].IndexCount;
@@ -419,6 +454,98 @@ void GameApp::updateInstanceData()
             else
             {
                 e->vDrawObjs[e->visibileCount++].x = i;
+            }
+        }
+    }
+}
+
+void GameApp::checkPick()
+{
+    // 鼠标按下一次触发一次
+    if (!GameInput::IsFirstPressed(GameInput::kMouse0))
+        return;
+
+    auto [x, y] = GameInput::GetCurPos();
+
+    // 获取长宽的比例
+    float HCot = m_Camera.GetProjMatrix().GetX().GetX();
+    float VCot = m_Camera.GetProjMatrix().GetY().GetY();
+
+    float vx = (+2.0f * x / Graphics::g_DisplayWidth - 1.0f) / HCot;
+    float vy = (-2.0f * y / Graphics::g_DisplayHeight + 1.0f) / VCot;
+
+    // 计算射线向量，此时射线已经在观察空间(view)
+    Math::Vector4 rayOriginBase = { 0.0f, 0.0f, 0.0f, 1.0f };
+    Math::Vector4 rayDirBase = { vx, vy, 1.0f, 0.0f };
+
+    // 计算世界转view的逆矩阵
+    auto inView = Math::Invert(m_Camera.GetViewMatrix());
+
+    // 遍历场景中的物体
+    float tmin = FLT_MAX;
+    for (auto& e : m_vecAll)
+    {
+        e->selectedCount = 0;
+
+        // 渲染目标的AABB盒
+        BoundingBox bounds;
+        XMStoreFloat3(&bounds.Center, 0.5f * (e->vMin + e->vMax));
+        XMStoreFloat3(&bounds.Extents, 0.5f * (e->vMax - e->vMin));
+
+        // 只检查经过视锥体剪裁后的渲染目标即可
+        for (int idx = 0; idx < e->visibileCount; ++idx)
+        {
+            auto& item = e->vObjsData[e->vDrawObjs[idx].x];
+
+            // 取出该渲染目标的实际转换矩阵的逆矩阵
+            auto inObjWorld = Math::Invert(Math::Transpose(item.World));
+
+            // 注意这里的乘法是反向的（待以后修改）
+            auto inViewWorld = inObjWorld * inView;
+
+            // 把射线转到渲染目标的模型坐标系(待以后封装下列API)
+            auto rayOrigin = Math::Vector4(XMVector3TransformCoord(rayOriginBase, inViewWorld));
+            auto rayDir = Math::Vector4(XMVector3TransformNormal(rayDirBase, inViewWorld));
+
+            // Make the ray direction unit length for the intersection tests.
+            rayDir = Math::Vector4(XMVector3Normalize(rayDir));
+
+            // 先检测射线是否相交于物体的AABB盒
+            float tTemp = 0.0f;
+            if (bounds.Intersects(rayOrigin, rayDir, tTemp))
+            {
+                // 如果已经有相交的渲染目标，则判断AABB盒的深度
+                if (tTemp > tmin) continue;
+
+                auto& vertices = e->geo->vecVertex;
+                auto& indices = e->geo->vecIndex;
+                UINT triCount = e->IndexCount / 3;
+
+                // 依次判断三角形面
+                for (UINT i = 0; i < triCount; ++i)
+                {
+                    // Indices for this triangle.
+                    UINT i0 = indices[i * 3 + 0];
+                    UINT i1 = indices[i * 3 + 1];
+                    UINT i2 = indices[i * 3 + 2];
+
+                    // Vertices for this triangle.
+                    XMVECTOR v0 = XMLoadFloat3(&vertices[i0].Pos);
+                    XMVECTOR v1 = XMLoadFloat3(&vertices[i1].Pos);
+                    XMVECTOR v2 = XMLoadFloat3(&vertices[i2].Pos);
+
+                    float t = 0.0f;
+                    if (TriangleTests::Intersects(rayOrigin, rayDir, v0, v1, v2, t))
+                    {
+                        // 命中任意面即认为命中了该渲染目标，记录深度，继续判断下一个渲染目标
+                        tmin = tTemp;
+
+                        e->selectedCount = 1;
+                        e->vDrawOutLineObjs[0].x = e->vDrawObjs[idx].x;
+
+                        break;
+                    }
+                }
             }
         }
     }

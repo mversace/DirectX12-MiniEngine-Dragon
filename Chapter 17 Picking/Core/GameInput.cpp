@@ -54,6 +54,9 @@ namespace
     float s_Analogs[GameInput::kNumAnalogInputs];
     float s_AnalogsTC[GameInput::kNumAnalogInputs];
 
+    int s_Mouse_X;
+    int s_Mouse_Y;
+
 #ifdef USE_KEYBOARD_MOUSE
 
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
@@ -540,6 +543,12 @@ void GameInput::Update( float frameDelta )
 
 }
 
+void GameInput::OnMouseMove(WPARAM btnState, int x, int y)
+{
+    s_Mouse_X = x;
+    s_Mouse_Y = y;
+}
+
 bool GameInput::IsAnyPressed( void )
 {
     return s_Buttons[0] != 0;
@@ -578,4 +587,9 @@ float GameInput::GetAnalogInput( AnalogInput ai )
 float GameInput::GetTimeCorrectedAnalogInput( AnalogInput ai )
 {
     return s_AnalogsTC[ai];
+}
+
+POINT GameInput::GetCurPos()
+{
+    return { s_Mouse_X, s_Mouse_Y };
 }

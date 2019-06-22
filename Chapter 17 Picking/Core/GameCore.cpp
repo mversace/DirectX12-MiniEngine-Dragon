@@ -166,7 +166,11 @@ namespace GameCore
         switch( message )
         {
             case WM_SIZE:
-                Graphics::Resize((UINT)(UINT64)lParam & 0xFFFF, (UINT)(UINT64)lParam >> 16);
+                Graphics::Resize(LOWORD(lParam), HIWORD(lParam));
+                break;
+
+            case WM_MOUSEMOVE:
+                GameInput::OnMouseMove(wParam, LOWORD(lParam), HIWORD(lParam));
                 break;
 
             case WM_DESTROY:

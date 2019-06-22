@@ -23,7 +23,7 @@ namespace Utility
     using namespace std;
     using namespace concurrency;
 
-    typedef shared_ptr<vector<byte> > ByteArray;
+    typedef shared_ptr<vector<unsigned char> > ByteArray;
     extern ByteArray NullFile;
 
     // Reads the entire contents of a binary file.  If the file with the same name except with an additional

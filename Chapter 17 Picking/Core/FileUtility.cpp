@@ -22,7 +22,7 @@ using namespace Utility;
 
 namespace Utility
 {
-    ByteArray NullFile = make_shared<vector<byte> > (vector<byte>() );
+    ByteArray NullFile = make_shared<vector<unsigned char> > (vector<unsigned char>() );
 }
 
 ByteArray DecompressZippedFile( wstring& fileName );
@@ -38,7 +38,7 @@ ByteArray ReadFileHelper(const wstring& fileName)
     if (!file)
         return NullFile;
 
-    Utility::ByteArray byteArray = make_shared<vector<byte> >( file.seekg(0, ios::end).tellg() );
+    Utility::ByteArray byteArray = make_shared<vector<unsigned char> >( file.seekg(0, ios::end).tellg() );
     file.seekg(0, ios::beg).read( (char*)byteArray->data(), byteArray->size() );
     file.close();
 
@@ -60,7 +60,7 @@ ByteArray ReadFileHelperEx( shared_ptr<wstring> fileName)
 ByteArray Inflate(ByteArray CompressedSource, int& err, uint32_t ChunkSize = 0x100000 ) 
 {
     // Create a dynamic buffer to hold compressed blocks
-    vector<unique_ptr<byte> > blocks;
+    vector<unique_ptr<unsigned char> > blocks;
 
     z_stream strm  = {};
     strm.data_type = Z_BINARY;
@@ -72,7 +72,7 @@ ByteArray Inflate(ByteArray CompressedSource, int& err, uint32_t ChunkSize = 0x1
     while (err == Z_OK || err == Z_BUF_ERROR)
     {
         strm.avail_out = ChunkSize;
-        strm.next_out = (byte*)malloc(ChunkSize);
+        strm.next_out = (unsigned char*)malloc(ChunkSize);
         blocks.emplace_back(strm.next_out);
         err = inflate(&strm, Z_NO_FLUSH);
     }
@@ -85,7 +85,7 @@ ByteArray Inflate(ByteArray CompressedSource, int& err, uint32_t ChunkSize = 0x1
 
     ASSERT(strm.total_out > 0, "Nothing to decompress");
 
-    Utility::ByteArray byteArray = make_shared<vector<byte> >( strm.total_out );
+    Utility::ByteArray byteArray = make_shared<vector<unsigned char> >( strm.total_out );
 
     // Allocate actual memory for this.
     // copy the bits into that RAM.
@@ -100,7 +100,7 @@ ByteArray Inflate(ByteArray CompressedSource, int& err, uint32_t ChunkSize = 0x1
         size_t CopySize = min(remaining, (size_t)ChunkSize);
 
         memcpy(curDest, blocks[i].get(), CopySize);
-        curDest = (byte*)curDest + CopySize;
+        curDest = (unsigned char*)curDest + CopySize;
         remaining -= CopySize;
     }
 

@@ -29,6 +29,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter 16 Instancing and F
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter 17 Picking", "Chapter 17 Picking\Chapter 17 Picking.vcxproj", "{DC86DA3F-B166-464B-8147-BC18A9FA18DE}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chapter 18 Cube Mapping", "Chapter 18 Cube Mapping\Chapter 18 Cube Mapping.vcxproj", "{6B93AE6B-3432-44AA-A6DA-87065A625F00}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -87,6 +89,10 @@ Global
 		{DC86DA3F-B166-464B-8147-BC18A9FA18DE}.Debug|x64.Build.0 = Debug|x64
 		{DC86DA3F-B166-464B-8147-BC18A9FA18DE}.Release|x64.ActiveCfg = Release|x64
 		{DC86DA3F-B166-464B-8147-BC18A9FA18DE}.Release|x64.Build.0 = Release|x64
+		{6B93AE6B-3432-44AA-A6DA-87065A625F00}.Debug|x64.ActiveCfg = Debug|x64
+		{6B93AE6B-3432-44AA-A6DA-87065A625F00}.Debug|x64.Build.0 = Debug|x64
+		{6B93AE6B-3432-44AA-A6DA-87065A625F00}.Release|x64.ActiveCfg = Release|x64
+		{6B93AE6B-3432-44AA-A6DA-87065A625F00}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -23,7 +23,7 @@ void GameApp::Startup(void)
     buildMaterials();
     buildRenderItem();
 
-    m_Camera.SetEyeAtUp({ 0.0f, 2.0f, -15.0f }, { 0.0f, 0.0f, 0.0f }, Math::Vector3(Math::kYUnitVector));
+    m_Camera.SetEyeAtUp({ 0.0f, 5.0f, -10.0f }, { 0.0f, 0.0f, 0.0f }, Math::Vector3(Math::kYUnitVector));
     m_CameraController.reset(new GameCore::CameraController(m_Camera, Math::Vector3(Math::kYUnitVector)));
 }
 
@@ -44,6 +44,17 @@ void GameApp::Update(float deltaT)
 {
     //cameraUpdate();
     m_CameraController->Update(deltaT);
+
+    // skull 的世界坐标一直变化
+    static float fAllTime = 0;
+    fAllTime += deltaT;
+    using namespace Math;
+    Matrix4 skullScale = Matrix4::MakeScale(0.2f);
+    Matrix4 skullOffset = Matrix4(Matrix3(kIdentity), { 3.0f, 2.0f, 0.0f });
+    Matrix4 skullLocalRotate = Matrix3::MakeYRotation(2.0f * fAllTime);
+    Matrix4 skullGlobalRotate = Matrix3::MakeYRotation(0.5f * fAllTime);
+    // 注意反向
+    m_SkullRItem->modeToWorld = Transpose(skullGlobalRotate * skullOffset * skullLocalRotate * skullScale);
 
     m_ViewProjMatrix = m_Camera.GetViewProjMatrix();
 
@@ -429,8 +440,21 @@ void GameApp::buildRenderItem()
     m_vecRenderItems[(int)RenderLayer::Opaque].push_back(boxRitem.get());
     m_vecAll.push_back(std::move(boxRitem));
 
+    auto globeRitem = std::make_unique<RenderItem>();
+    globeRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(2.0f, 2.0f, 2.0f), Vector3(0.0f, 2.0f, 0.0f))));
+    globeRitem->texTransform = Transpose(Matrix4::MakeScale(1.0f));
+    globeRitem->matTransform = Transpose(Matrix4(kIdentity));
+    globeRitem->MaterialIndex = 2;
+    globeRitem->geo = m_mapGeometries["shapeGeo"].get();
+    globeRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    globeRitem->IndexCount = globeRitem->geo->geoMap["sphere"].IndexCount;
+    globeRitem->StartIndexLocation = globeRitem->geo->geoMap["sphere"].StartIndexLocation;
+    globeRitem->BaseVertexLocation = globeRitem->geo->geoMap["sphere"].BaseVertexLocation;
+    m_vecRenderItems[(int)RenderLayer::Opaque].push_back(globeRitem.get());
+    m_vecAll.push_back(std::move(globeRitem));
+
     auto skullRitem = std::make_unique<RenderItem>();
-    skullRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(0.4f, 0.4f, 0.4f), Vector3(0.0f, 1.0f, 0.0f))));
+    skullRitem->modeToWorld = Transpose(Matrix4(kIdentity));
     skullRitem->texTransform = Transpose(Matrix4(kIdentity));
     skullRitem->matTransform = Transpose(Matrix4(kIdentity));
     skullRitem->MaterialIndex = 3;
@@ -440,6 +464,7 @@ void GameApp::buildRenderItem()
     skullRitem->StartIndexLocation = skullRitem->geo->geoMap["skull"].StartIndexLocation;
     skullRitem->BaseVertexLocation = skullRitem->geo->geoMap["skull"].BaseVertexLocation;
     m_vecRenderItems[(int)RenderLayer::Opaque].push_back(skullRitem.get());
+    m_SkullRItem = skullRitem.get();
     m_vecAll.push_back(std::move(skullRitem));
 
     auto gridRitem = std::make_unique<RenderItem>();

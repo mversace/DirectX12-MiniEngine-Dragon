@@ -67,6 +67,7 @@ private:
     };
     std::unordered_map<int, GraphicsPSO> m_mapPSO;
 
+    RenderItem* m_SkullRItem = nullptr;
 
     // 摄像机
     // 以(0, 0, -m_radius) 为初始位置

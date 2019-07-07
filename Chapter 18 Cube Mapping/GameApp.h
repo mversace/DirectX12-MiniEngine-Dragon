@@ -46,6 +46,7 @@ private:
     enum class RenderLayer : int
     {
         Opaque = 0,
+        Sky,
         Count
     };
     std::vector<RenderItem*> m_vecRenderItems[(int)RenderLayer::Count];
@@ -62,6 +63,7 @@ private:
     enum ePSOType
     {
         E_EPT_DEFAULT = 1,
+        E_EPT_SKY,
     };
     std::unordered_map<int, GraphicsPSO> m_mapPSO;
 

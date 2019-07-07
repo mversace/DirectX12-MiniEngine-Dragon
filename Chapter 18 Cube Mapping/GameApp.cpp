@@ -13,8 +13,8 @@
 
 #include "CompiledShaders/dynamicIndexDefaultPS.h"
 #include "CompiledShaders/dynamicIndexDefaultVS.h"
-#include "CompiledShaders/dynamicIndexOutLinePS.h"
-#include "CompiledShaders/dynamicIndexOutLineVS.h"
+#include "CompiledShaders/skyboxPS.h"
+#include "CompiledShaders/skyboxVS.h"
 
 void GameApp::Startup(void)
 {
@@ -99,6 +99,10 @@ void GameApp::RenderScene(void)
     gfxContext.SetPipelineState(m_mapPSO[E_EPT_DEFAULT]);
     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Opaque]);
 
+    // 绘制天空盒
+    gfxContext.SetPipelineState(m_mapPSO[E_EPT_SKY]);
+    drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Sky]);
+
     gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PRESENT);
 
     gfxContext.Finish();
@@ -143,7 +147,7 @@ void GameApp::buildPSO()
     m_RootSignature[1].InitAsConstantBuffer(1);
     m_RootSignature[2].InitAsBufferSRV(0);
     m_RootSignature[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4);
-    m_RootSignature.Finalize(L"15 RS", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+    m_RootSignature.Finalize(L"18 RS", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
     // 创建PSO
     D3D12_INPUT_ELEMENT_DESC mInputLayout[] =
@@ -170,6 +174,19 @@ void GameApp::buildPSO()
 
     // 默认PSO
     m_mapPSO[E_EPT_DEFAULT] = defaultPSO;
+
+    // 天空盒PSO
+    auto ras = Graphics::RasterizerDefaultCw;
+    ras.CullMode = D3D12_CULL_MODE_NONE;
+    auto dep = Graphics::DepthStateReadWrite;
+    dep.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+    GraphicsPSO skyPSO = defaultPSO;
+    skyPSO.SetRasterizerState(ras);
+    skyPSO.SetDepthStencilState(dep);
+    skyPSO.SetVertexShader(g_pskyboxVS, sizeof(g_pskyboxVS));
+    skyPSO.SetPixelShader(g_pskyboxPS, sizeof(g_pskyboxPS));
+    skyPSO.Finalize();
+    m_mapPSO[E_EPT_SKY] = skyPSO;
 }
 
 void GameApp::buildGeo()
@@ -386,6 +403,19 @@ void GameApp::buildMaterials()
 void GameApp::buildRenderItem()
 {
     using namespace Math;
+    auto skyRitem = std::make_unique<RenderItem>();
+    skyRitem->modeToWorld = Transpose(Matrix4::MakeScale(5000.0f));
+    skyRitem->texTransform = Transpose(Matrix4(kIdentity));
+    skyRitem->matTransform = Transpose(Matrix4(kIdentity));
+    skyRitem->MaterialIndex = 4;
+    skyRitem->geo = m_mapGeometries["shapeGeo"].get();
+    skyRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    skyRitem->IndexCount = skyRitem->geo->geoMap["sphere"].IndexCount;
+    skyRitem->StartIndexLocation = skyRitem->geo->geoMap["sphere"].StartIndexLocation;
+    skyRitem->BaseVertexLocation = skyRitem->geo->geoMap["sphere"].BaseVertexLocation;
+    m_vecRenderItems[(int)RenderLayer::Sky].push_back(skyRitem.get());
+    m_vecAll.push_back(std::move(skyRitem));
+
     auto boxRitem = std::make_unique<RenderItem>();
     boxRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(2.0f, 1.0f, 2.0f), Vector3(0.0f, 0.5f, 0.0f))));
     boxRitem->texTransform = Transpose(Matrix4(kIdentity));

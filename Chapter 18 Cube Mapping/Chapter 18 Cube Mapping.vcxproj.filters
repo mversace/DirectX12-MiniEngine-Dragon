@@ -937,6 +937,12 @@
     <FxCompile Include="Core\Shaders\default\dynamicIndexOutLineVS.hlsl">
       <Filter>Shaders\default</Filter>
     </FxCompile>
+    <FxCompile Include="Core\Shaders\default\skyboxPS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\default\skyboxVS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Core\Graphics\Command\readme_command.txt">

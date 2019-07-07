@@ -33,7 +33,10 @@ struct MaterialData
 
 StructuredBuffer<MaterialData> gMaterialData : register(t0);
 
-Texture2D gDiffuseMap[4] : register(t1);
+// 占据t1-t4
+Texture2D gDiffuseMap[3] : register(t1);
+// gDiffuseMap占据的是t1-t4，而天空盒纹理本身是放在t4位置，这里转成cube类型
+TextureCube gCubeMap : register(t4);
 
 SamplerState gsamLinearWrap  : register(s0);
 
@@ -120,6 +123,12 @@ float4 main(VertexOut pin) : SV_Target0
         float fogAmount = saturate((distToEye - gFogStart) / gFogRange);
         litColor = lerp(litColor, gFogColor, fogAmount);
     }
+
+    // 镜面反射
+    float3 r = reflect(-toEyeW, pin.NormalW);
+    float4 reflectionColor = gCubeMap.Sample(gsamLinearWrap, r);
+    float3 fresnelFactor = SchlickFresnel(fresnelR0, pin.NormalW, r);
+    litColor.rgb += shininess * fresnelFactor * reflectionColor.rgb;
     
     // Common convention to take alpha from diffuse material.
     litColor.a = diffuseAlbedo.a;

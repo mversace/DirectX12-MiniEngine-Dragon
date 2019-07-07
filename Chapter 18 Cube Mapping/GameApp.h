@@ -33,6 +33,9 @@ private:
     void buildMaterials();
     void buildRenderItem();
     void drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderItem*>& ritems);
+    
+    void buildCubeCamera(float x, float y, float z);
+    void DrawSceneToCubeMap(GraphicsContext& gfxContext);
 
 private:
     void buildShapeGeo();
@@ -46,6 +49,7 @@ private:
     enum class RenderLayer : int
     {
         Opaque = 0,
+        OpaqueDynamicReflectors,
         Sky,
         Count
     };
@@ -68,6 +72,9 @@ private:
     std::unordered_map<int, GraphicsPSO> m_mapPSO;
 
     RenderItem* m_SkullRItem = nullptr;
+
+    // 天空盒摄像机
+    Math::Camera m_CameraCube[6];
 
     // 摄像机
     // 以(0, 0, -m_radius) 为初始位置

@@ -28,6 +28,7 @@
 #include <vector>
 
 class ColorBuffer;
+class ColorCubeBuffer;
 class DepthBuffer;
 class Texture;
 class GraphicsContext;
@@ -209,6 +210,7 @@ public:
     void ClearUAV(GpuBuffer& Target);
     void ClearUAV(ColorBuffer& Target);
     void ClearColor( ColorBuffer& Target );
+    void ClearColor(ColorCubeBuffer& Target);
     void ClearDepth( DepthBuffer& Target );
     void ClearStencil( DepthBuffer& Target );
     void ClearDepthAndStencil( DepthBuffer& Target );

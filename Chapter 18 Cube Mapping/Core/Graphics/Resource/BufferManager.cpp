@@ -21,6 +21,7 @@ namespace Graphics
 {
     DepthBuffer g_SceneDepthBuffer;
     ColorBuffer g_SceneColorBuffer;
+    ColorCubeBuffer g_SceneCubeBuff;
     ColorBuffer g_OverlayBuffer;
     ColorBuffer g_HorizontalBuffer;
 
@@ -166,6 +167,7 @@ void Graphics::InitializeRenderingBuffers( uint32_t bufferWidth, uint32_t buffer
 //     g_GenMipsBuffer.Create(L"GenMips", bufferWidth, bufferHeight, 0, DXGI_FORMAT_R11G11B10_FLOAT, esram);
 //     esram.PopStack();
 
+    g_SceneCubeBuff.Create(L"scene cube buffer", 1024, 1024, 1, DefaultHdrColorFormat);
     g_OverlayBuffer.Create(L"UI Overlay", g_DisplayWidth, g_DisplayHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM, esram);
     g_HorizontalBuffer.Create(L"Bicubic Intermediate", g_DisplayWidth, bufferHeight, 1, DefaultHdrColorFormat, esram);
 
@@ -184,6 +186,7 @@ void Graphics::DestroyRenderingBuffers()
 {
     g_SceneDepthBuffer.Destroy();
     g_SceneColorBuffer.Destroy();
+    g_SceneCubeBuff.Destroy();
     g_OverlayBuffer.Destroy();
     g_HorizontalBuffer.Destroy();
 }

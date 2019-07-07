@@ -22,6 +22,7 @@ void GameApp::Startup(void)
     buildGeo();
     buildMaterials();
     buildRenderItem();
+    buildCubeCamera(0.0f, 2.0f, 0.0f);
 
     m_Camera.SetEyeAtUp({ 0.0f, 5.0f, -10.0f }, { 0.0f, 0.0f, 0.0f }, Math::Vector3(Math::kYUnitVector));
     m_CameraController.reset(new GameCore::CameraController(m_Camera, Math::Vector3(Math::kYUnitVector)));
@@ -75,6 +76,9 @@ void GameApp::RenderScene(void)
 {
     GraphicsContext& gfxContext = GraphicsContext::Begin(L"Scene Render");
 
+    // 动态天空盒渲染到 => g_SceneCubeBuffer
+    DrawSceneToCubeMap(gfxContext);
+
     gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
 
     gfxContext.SetViewportAndScissor(m_MainViewport, m_MainScissor);
@@ -110,13 +114,79 @@ void GameApp::RenderScene(void)
     gfxContext.SetPipelineState(m_mapPSO[E_EPT_DEFAULT]);
     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Opaque]);
 
+    // 渲染中间的水晶球，输入纹理是上边动态生成的天空盒
+    // 设置动态的天空盒资源
+    gfxContext.SetDynamicDescriptors(3, 3, 1, &Graphics::g_SceneCubeBuff.GetSRV());
+    drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::OpaqueDynamicReflectors]);
+
     // 绘制天空盒
-    gfxContext.SetPipelineState(m_mapPSO[E_EPT_SKY]);
-    drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Sky]);
+     gfxContext.SetPipelineState(m_mapPSO[E_EPT_SKY]);
+     // 设置原始的天空盒资源
+     gfxContext.SetDynamicDescriptors(3, 3, 1, &m_srvs[3]);
+     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Sky]);
 
     gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PRESENT);
 
     gfxContext.Finish();
+}
+
+void GameApp::DrawSceneToCubeMap(GraphicsContext& gfxContext)
+{
+    // 改变缓冲属性
+    gfxContext.TransitionResource(Graphics::g_SceneCubeBuff, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+
+    // 设置深度模板缓冲
+    gfxContext.TransitionResource(Graphics::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
+
+    // 清理背景色
+    gfxContext.ClearColor(Graphics::g_SceneCubeBuff);
+
+    // 设置视口和裁剪矩形
+    auto width = Graphics::g_SceneCubeBuff.GetWidth();
+    auto height = Graphics::g_SceneCubeBuff.GetHeight();
+    D3D12_VIEWPORT mViewport = { 0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f };
+    D3D12_RECT mScissorRect = { 0, 0, (LONG)width, (LONG)height };
+    gfxContext.SetViewportAndScissor(mViewport, mScissorRect);
+
+    // 设置根签名
+    gfxContext.SetRootSignature(m_RootSignature);
+
+    // 设置全部的纹理参数
+    gfxContext.SetBufferSRV(2, m_mats);
+
+    // 设置全部的纹理资源
+    gfxContext.SetDynamicDescriptors(3, 0, 4, &m_srvs[0]);
+
+    for (int i = 0; i < 6; ++i)
+    {
+        gfxContext.ClearDepthAndStencil(Graphics::g_SceneDepthBuffer);
+        // 设置为渲染目标
+        gfxContext.SetRenderTarget(Graphics::g_SceneCubeBuff.GetRTV(i), Graphics::g_SceneDepthBuffer.GetDSV());
+
+        // 设置通用的常量缓冲区
+        PassConstants psc;
+        psc.viewProj = Transpose(m_CameraCube[i].GetViewProjMatrix());
+        psc.eyePosW = m_CameraCube[i].GetPosition();
+        psc.ambientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+        psc.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
+        psc.Lights[0].Strength = { 0.8f, 0.8f, 0.8f };
+        psc.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
+        psc.Lights[1].Strength = { 0.4f, 0.4f, 0.4f };
+        psc.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
+        psc.Lights[2].Strength = { 0.2f, 0.2f, 0.2f };
+        gfxContext.SetDynamicConstantBufferView(1, sizeof(psc), &psc);
+
+        // 开始绘制
+        gfxContext.SetPipelineState(m_mapPSO[E_EPT_DEFAULT]);
+        drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Opaque]);
+
+        // 绘制天空盒
+        gfxContext.SetPipelineState(m_mapPSO[E_EPT_SKY]);
+        drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Sky]);
+    }
+    
+    // 改变缓冲属性
+    gfxContext.TransitionResource(Graphics::g_SceneCubeBuff, D3D12_RESOURCE_STATE_GENERIC_READ, true);
 }
 
 void GameApp::RenderUI(class GraphicsContext& gfxContext)
@@ -450,7 +520,7 @@ void GameApp::buildRenderItem()
     globeRitem->IndexCount = globeRitem->geo->geoMap["sphere"].IndexCount;
     globeRitem->StartIndexLocation = globeRitem->geo->geoMap["sphere"].StartIndexLocation;
     globeRitem->BaseVertexLocation = globeRitem->geo->geoMap["sphere"].BaseVertexLocation;
-    m_vecRenderItems[(int)RenderLayer::Opaque].push_back(globeRitem.get());
+    m_vecRenderItems[(int)RenderLayer::OpaqueDynamicReflectors].push_back(globeRitem.get());
     m_vecAll.push_back(std::move(globeRitem));
 
     auto skullRitem = std::make_unique<RenderItem>();
@@ -584,4 +654,36 @@ void GameApp::cameraUpdate()
 
     m_Camera.SetEyeAtUp({ x, y, z }, Math::Vector3(Math::kZero), Math::Vector3(Math::kYUnitVector));
     m_Camera.Update();
+}
+
+void GameApp::buildCubeCamera(float x, float y, float z)
+{
+    // 朝向向量
+    Math::Vector3 targets[6] =
+    {
+        { x + 1.0f, y, z }, // +X
+        { x - 1.0f, y, z }, // -X
+        { x, y + 1.0f, z }, // +Y
+        { x, y - 1.0f, z }, // -Y
+        { x, y, z + 1.0f }, // +Z
+        { x, y, z - 1.0f }  // -Z
+    };
+
+    // 摄像机的上方
+    Math::Vector3 ups[6] =
+    {
+        { +0.0f, +1.0f, +0.0f },    // +X
+        { +0.0f, +1.0f, +0.0f },    // -X
+        { +0.0f, +0.0f, -1.0f },    // +Y
+        { +0.0f, +0.0f, +1.0f },    // -Y
+        { +0.0f, +1.0f, +0.0f },    // +Z
+        { +0.0f, +1.0f, +0.0f }     // -Z
+    };
+
+    for (int i = 0; i < 6; ++i)
+    {
+        m_CameraCube[i].SetEyeAtUp({ x, y, z }, targets[i], ups[i]);
+        m_CameraCube[i].SetPerspectiveMatrix(Math::XM_PIDIV2, 1.0f, 0.1f, 1000.0f);
+        m_CameraCube[i].Update();
+    }
 }

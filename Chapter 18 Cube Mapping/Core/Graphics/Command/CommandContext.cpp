@@ -14,6 +14,7 @@
 #include "pch.h"
 #include "CommandContext.h"
 #include "ColorBuffer.h"
+#include "ColorCubeBuffer.h"
 #include "DepthBuffer.h"
 #include "GraphicsCore.h"
 #include "DescriptorHeap.h"
@@ -486,6 +487,12 @@ void GraphicsContext::ClearUAV(ColorBuffer& Target)
 void GraphicsContext::ClearColor( ColorBuffer& Target )
 {
     m_CommandList->ClearRenderTargetView(Target.GetRTV(), Target.GetClearColor().GetPtr(), 0, nullptr);
+}
+
+void GraphicsContext::ClearColor(ColorCubeBuffer& Target)
+{
+    for (int i = 0; i < 6; ++i)
+        m_CommandList->ClearRenderTargetView(Target.GetRTV(i), Target.GetClearColor().GetPtr(), 0, nullptr);
 }
 
 void GraphicsContext::ClearDepth( DepthBuffer& Target )

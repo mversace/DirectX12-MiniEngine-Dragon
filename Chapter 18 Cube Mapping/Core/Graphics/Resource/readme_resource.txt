@@ -26,6 +26,13 @@
 ----m_RTVHandle: 渲染目标视图	句柄		！！通过Create创建的缓冲区才会创建该视图
 ----m_UAVHandle[12]: 无序访问视图句柄		！！通过Create创建的缓冲区才会创建该视图
 
+--ColorCubeBuffer -> PixelBuffer -> GpuResource
+--天空盒颜色缓冲区
+--进一步规定了每个像素的结构是颜色格式
+--还维护有2种描述符句柄：
+----m_SRVHandle: 着色器资源视图句柄
+----m_RTVHandle[6]: 渲染目标视图句柄	
+
 --DepthBuffer -> PixelBuffer -> GpuResource
 --深度/模板缓冲区
 --维护有3种描述符句柄：

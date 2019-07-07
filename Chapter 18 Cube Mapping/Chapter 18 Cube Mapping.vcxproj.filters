@@ -210,6 +210,9 @@
     <ClCompile Include="GeometryGenerator.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Core\Graphics\Resource\ColorCubeBuffer.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Math\BoundingPlane.h">
@@ -376,6 +379,9 @@
     </ClInclude>
     <ClInclude Include="GeometryGenerator.h">
       <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\Resource\ColorCubeBuffer.h">
+      <Filter>Core\Graphics\Resource</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -315,6 +315,9 @@
     </FxCompile>
     <FxCompile Include="Core\Shaders\default\blurHorzCS.hlsl" />
     <FxCompile Include="Core\Shaders\default\blurVertCS.hlsl" />
+    <None Include="Core\Shaders\default\common.hlsl">
+      <FileType>Document</FileType>
+    </None>
     <FxCompile Include="Core\Shaders\default\compositeCS.hlsl" />
     <FxCompile Include="Core\Shaders\default\defaultPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>

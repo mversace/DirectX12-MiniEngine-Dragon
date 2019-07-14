@@ -80,15 +80,14 @@ void GameApp::RenderScene(void)
     DrawSceneToCubeMap(gfxContext);
 
     gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
-
-    gfxContext.SetViewportAndScissor(m_MainViewport, m_MainScissor);
-
     gfxContext.ClearColor(Graphics::g_SceneColorBuffer);
-
+    
     gfxContext.TransitionResource(Graphics::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
     gfxContext.ClearDepthAndStencil(Graphics::g_SceneDepthBuffer);
 
     gfxContext.SetRenderTarget(Graphics::g_SceneColorBuffer.GetRTV(), Graphics::g_SceneDepthBuffer.GetDSV());
+
+    gfxContext.SetViewportAndScissor(m_MainViewport, m_MainScissor);
 
     gfxContext.SetRootSignature(m_RootSignature);
 
@@ -120,10 +119,10 @@ void GameApp::RenderScene(void)
     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::OpaqueDynamicReflectors]);
 
     // 绘制天空盒
-     gfxContext.SetPipelineState(m_mapPSO[E_EPT_SKY]);
-     // 设置原始的天空盒资源
-     gfxContext.SetDynamicDescriptors(3, 6, 1, &m_srvs[6]);
-     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Sky]);
+    gfxContext.SetPipelineState(m_mapPSO[E_EPT_SKY]);
+    // 设置原始的天空盒资源
+    gfxContext.SetDynamicDescriptors(3, 6, 1, &m_srvs[6]);
+    drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Sky]);
 
     gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PRESENT);
 
@@ -222,8 +221,9 @@ void GameApp::drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderIte
 void GameApp::buildPSO()
 {
     // 创建根签名
-    m_RootSignature.Reset(4, 1);
+    m_RootSignature.Reset(4, 2);
     m_RootSignature.InitStaticSampler(0, Graphics::SamplerLinearWrapDesc);
+    m_RootSignature.InitStaticSampler(1, Graphics::SamplerAnisoWrapDesc);
     m_RootSignature[0].InitAsConstantBuffer(0);
     m_RootSignature[1].InitAsConstantBuffer(1);
     m_RootSignature[2].InitAsBufferSRV(0);
@@ -469,9 +469,9 @@ void GameApp::buildMaterials()
     std::vector<MaterialConstants> v = {
         { { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.10f, 0.10f, 0.10f }, 0.3f, 0, 1},   // bricks
         { { 0.9f, 0.9f, 0.9f, 1.0f }, { 0.20f, 0.20f, 0.20f }, 0.1f, 2, 3},   // tile
-        { { 0.0f, 0.0f, 0.1f, 1.0f }, { 0.98f, 0.97f, 0.95f }, 0.1f, 4, 5},   // mirror
+        { { 0.0f, 0.0f, 0.0f, 1.0f }, { 0.98f, 0.97f, 0.95f }, 0.1f, 4, 5},   // mirror
         { { 0.8f, 0.8f, 0.8f, 1.0f }, { 0.20f, 0.20f, 0.20f }, 0.2f, 4, 5},   // skull
-        { { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.10f, 0.10f, 0.10f }, 1.0f, 6, 7},   // sky
+        { { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.10f, 0.10f, 0.10f }, 1.0f, 6, 6},   // sky
     };
 
     // 存入所有纹理属性
@@ -481,11 +481,11 @@ void GameApp::buildMaterials()
     m_srvs.resize(7);
     TextureManager::Initialize(L"Textures/");
     m_srvs[0] = TextureManager::LoadFromFile(L"bricks2", true)->GetSRV();
-    m_srvs[1] = TextureManager::LoadFromFile(L"bricks2_nmap", true)->GetSRV();
+    m_srvs[1] = TextureManager::LoadFromFile(L"bricks2_nmap", false)->GetSRV();
     m_srvs[2] = TextureManager::LoadFromFile(L"tile", true)->GetSRV();
-    m_srvs[3] = TextureManager::LoadFromFile(L"tile_nmap", true)->GetSRV();
+    m_srvs[3] = TextureManager::LoadFromFile(L"tile_nmap", false)->GetSRV();
     m_srvs[4] = TextureManager::LoadFromFile(L"white1x1", true)->GetSRV();
-    m_srvs[5] = TextureManager::LoadFromFile(L"default_nmap", true)->GetSRV();
+    m_srvs[5] = TextureManager::LoadFromFile(L"default_nmap", false)->GetSRV();
     m_srvs[6] = TextureManager::LoadFromFile(L"snowcube1024", true)->GetSRV();
 }
 
@@ -562,7 +562,7 @@ void GameApp::buildRenderItem()
     {
         auto leftCylRitem = std::make_unique<RenderItem>();
         leftCylRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Vector3(-5.0f, 1.5f, -10.0f + i * 5.0f))));
-        leftCylRitem->texTransform = Transpose(Matrix4(kIdentity));
+        leftCylRitem->texTransform = Transpose(Matrix4::MakeScale({ 1.5f, 2.0f, 1.0f }));
         leftCylRitem->matTransform = Transpose(Matrix4(kIdentity));
         leftCylRitem->MaterialIndex = eMaterialType::bricks;
         leftCylRitem->geo = m_mapGeometries["shapeGeo"].get();
@@ -575,7 +575,7 @@ void GameApp::buildRenderItem()
 
         auto rightCylRitem = std::make_unique<RenderItem>();
         rightCylRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Vector3(+5.0f, 1.5f, -10.0f + i * 5.0f))));
-        rightCylRitem->texTransform = Transpose(Matrix4(kIdentity));
+        rightCylRitem->texTransform = Transpose(Matrix4::MakeScale({ 1.5f, 2.0f, 1.0f }));
         rightCylRitem->matTransform = Transpose(Matrix4(kIdentity));
         rightCylRitem->MaterialIndex = eMaterialType::bricks;
         rightCylRitem->geo = m_mapGeometries["shapeGeo"].get();

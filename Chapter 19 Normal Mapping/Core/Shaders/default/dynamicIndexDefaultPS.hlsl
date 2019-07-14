@@ -19,6 +19,7 @@
 
 // Include structures and functions for lighting.
 #include "LightingUtil.hlsl"
+#include "common.hlsl"
 
 struct MaterialData
 {
@@ -26,19 +27,20 @@ struct MaterialData
     float3   FresnelR0;
     float    Mpad0;   // 占位符
     float    Roughness;
-    uint     DiffuseMapIndex;
-    float    Mpad1;   // 占位符
+    uint     DiffuseMapIndex;   // 纹理ID
+    uint     NormalMapIndex;    // 法向贴图的ID
     float    Mpad2;   // 占位符
 };
 
 StructuredBuffer<MaterialData> gMaterialData : register(t0);
 
 // 占据t1-t4
-Texture2D gDiffuseMap[6] : register(t1);
-// gDiffuseMap占据的是t1-t7，而天空盒纹理本身是放在t4位置，这里转成cube类型
+Texture2D gTextureMaps[6] : register(t1);
+// gTextureMaps占据的是t1-t7，而天空盒纹理本身是放在t4位置，这里转成cube类型
 TextureCube gCubeMap : register(t7);
 
 SamplerState gsamLinearWrap  : register(s0);
+SamplerState gsamAnisotropicWrap  : register(s1);
 
 cbuffer VSConstants : register(b0)
 {
@@ -78,6 +80,7 @@ struct VertexOut
     float4 PosH    : SV_POSITION;
     float3 PosW    : POSITION;
     float3 NormalW : NORMAL;
+    float3 TangentW : TANGENT; // 切线的世界向量
     float2 TexC    : TEXCOORD;
 };
 
@@ -89,17 +92,25 @@ float4 main(VertexOut pin) : SV_Target0
     float3 fresnelR0 = matData.FresnelR0;
     float  roughness = matData.Roughness;
     uint diffuseTexIndex = matData.DiffuseMapIndex;
+    uint normalMapIndex = matData.NormalMapIndex;
 
-    diffuseAlbedo *= gDiffuseMap[diffuseTexIndex].Sample(gsamLinearWrap, pin.TexC);
+    // 法向量规范化
+    pin.NormalW = normalize(pin.NormalW);
+
+    // 取得法向纹理
+    float4 normalMapSample = gTextureMaps[normalMapIndex].Sample(gsamAnisotropicWrap, pin.TexC);
+    // 计算出该点的实际法向 取代pin.NormalW
+    float3 bumpedNormalW = NormalSampleToWorldSpace(normalMapSample.rgb, pin.NormalW, pin.TangentW);
+
+    //bumpedNormalW = pin.NormalW;
+
+    diffuseAlbedo *= gTextureMaps[diffuseTexIndex].Sample(gsamAnisotropicWrap, pin.TexC);
 
     // 透明像素点剔除
     // Discard pixel if texture alpha < 0.1.  We do this test as soon 
     // as possible in the shader so that we can potentially exit the
     // shader early, thereby skipping the rest of the shader code.
     clip(diffuseAlbedo.a - 0.1f);
-
-    // Interpolating normal can unnormalize it, so renormalize it.
-    pin.NormalW = normalize(pin.NormalW);
 
     // Vector from point being lit to eye. 
     float3 toEyeW = gEyePosW - pin.PosW;
@@ -109,11 +120,11 @@ float4 main(VertexOut pin) : SV_Target0
     // Indirect lighting.
     float4 ambient = gAmbientLight * diffuseAlbedo;
 
-    const float shininess = 1.0f - roughness;
+    const float shininess = (1.0f - roughness) * normalMapSample.a;
     Material mat = { diffuseAlbedo, fresnelR0, shininess };
     float3 shadowFactor = 1.0f;
     float4 directLight = ComputeLighting(gLights, mat, pin.PosW,
-        pin.NormalW, toEyeW, shadowFactor);
+        bumpedNormalW, toEyeW, shadowFactor);
 
     float4 litColor = ambient + directLight;
 
@@ -125,9 +136,9 @@ float4 main(VertexOut pin) : SV_Target0
     }
 
     // 镜面反射
-    float3 r = reflect(-toEyeW, pin.NormalW);
+    float3 r = reflect(-toEyeW, bumpedNormalW);
     float4 reflectionColor = gCubeMap.Sample(gsamLinearWrap, r);
-    float3 fresnelFactor = SchlickFresnel(fresnelR0, pin.NormalW, r);
+    float3 fresnelFactor = SchlickFresnel(fresnelR0, bumpedNormalW, r);
     litColor.rgb += shininess * fresnelFactor * reflectionColor.rgb;
     
     // Common convention to take alpha from diffuse material.

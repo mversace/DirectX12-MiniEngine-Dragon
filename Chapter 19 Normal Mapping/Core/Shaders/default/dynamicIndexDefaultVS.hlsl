@@ -16,6 +16,7 @@ struct VertexIn
     float3 PosL  : POSITION;
     float3 NormalL : NORMAL;
     float2 TexC    : TEXCOORD;
+    float3 TangentU : TANGENT; // 切线向量
 };
 
 struct VertexOut
@@ -23,6 +24,7 @@ struct VertexOut
     float4 PosH    : SV_POSITION;
     float3 PosW    : POSITION;
     float3 NormalW : NORMAL;
+    float3 TangentW : TANGENT; // 切线的世界向量
     float2 TexC    : TEXCOORD;
 };
 
@@ -36,6 +38,9 @@ VertexOut main(VertexIn vin)
 
     // 法向量转换到世界坐标系
     vout.NormalW = mul(vin.NormalL, (float3x3)modelToWorld);
+
+    // 切线向量转换到世界坐标系
+    vout.TangentW = mul(vin.TangentU, (float3x3)modelToWorld);
 
     // 顶点转换到投影坐标系
     vout.PosH = mul(posW, gViewProj);

@@ -109,20 +109,20 @@ void GameApp::RenderScene(void)
     gfxContext.SetBufferSRV(2, m_mats);
 
     // 设置全部的纹理资源
-    gfxContext.SetDynamicDescriptors(3, 0, 4, &m_srvs[0]);
+    gfxContext.SetDynamicDescriptors(3, 0, 7, &m_srvs[0]);
 
     gfxContext.SetPipelineState(m_mapPSO[E_EPT_DEFAULT]);
     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Opaque]);
 
     // 渲染中间的水晶球，输入纹理是上边动态生成的天空盒
     // 设置动态的天空盒资源
-    gfxContext.SetDynamicDescriptors(3, 3, 1, &Graphics::g_SceneCubeBuff.GetSRV());
+    gfxContext.SetDynamicDescriptors(3, 6, 1, &Graphics::g_SceneCubeBuff.GetSRV());
     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::OpaqueDynamicReflectors]);
 
     // 绘制天空盒
      gfxContext.SetPipelineState(m_mapPSO[E_EPT_SKY]);
      // 设置原始的天空盒资源
-     gfxContext.SetDynamicDescriptors(3, 3, 1, &m_srvs[3]);
+     gfxContext.SetDynamicDescriptors(3, 6, 1, &m_srvs[6]);
      drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Sky]);
 
     gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PRESENT);
@@ -155,7 +155,7 @@ void GameApp::DrawSceneToCubeMap(GraphicsContext& gfxContext)
     gfxContext.SetBufferSRV(2, m_mats);
 
     // 设置全部的纹理资源
-    gfxContext.SetDynamicDescriptors(3, 0, 4, &m_srvs[0]);
+    gfxContext.SetDynamicDescriptors(3, 0, 7, &m_srvs[0]);
 
     for (int i = 0; i < 6; ++i)
     {
@@ -227,7 +227,7 @@ void GameApp::buildPSO()
     m_RootSignature[0].InitAsConstantBuffer(0);
     m_RootSignature[1].InitAsConstantBuffer(1);
     m_RootSignature[2].InitAsBufferSRV(0);
-    m_RootSignature[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4);
+    m_RootSignature[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7);
     m_RootSignature.Finalize(L"18 RS", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
     // 创建PSO
@@ -236,6 +236,7 @@ void GameApp::buildPSO()
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
     };
 
     DXGI_FORMAT ColorFormat = Graphics::g_SceneColorBuffer.GetFormat();
@@ -341,6 +342,7 @@ void GameApp::buildShapeGeo()
         vertices[k].Pos = box.Vertices[i].Position;
         vertices[k].Normal = box.Vertices[i].Normal;
         vertices[k].TexC = box.Vertices[i].TexC;
+        vertices[k].TangentU = box.Vertices[i].TangentU;
     }
 
     for (size_t i = 0; i < grid.Vertices.size(); ++i, ++k)
@@ -348,6 +350,7 @@ void GameApp::buildShapeGeo()
         vertices[k].Pos = grid.Vertices[i].Position;
         vertices[k].Normal = grid.Vertices[i].Normal;
         vertices[k].TexC = grid.Vertices[i].TexC;
+        vertices[k].TangentU = grid.Vertices[i].TangentU;
     }
 
     for (size_t i = 0; i < sphere.Vertices.size(); ++i, ++k)
@@ -355,6 +358,7 @@ void GameApp::buildShapeGeo()
         vertices[k].Pos = sphere.Vertices[i].Position;
         vertices[k].Normal = sphere.Vertices[i].Normal;
         vertices[k].TexC = sphere.Vertices[i].TexC;
+        vertices[k].TangentU = sphere.Vertices[i].TangentU;
     }
 
     for (size_t i = 0; i < cylinder.Vertices.size(); ++i, ++k)
@@ -362,6 +366,7 @@ void GameApp::buildShapeGeo()
         vertices[k].Pos = cylinder.Vertices[i].Position;
         vertices[k].Normal = cylinder.Vertices[i].Normal;
         vertices[k].TexC = cylinder.Vertices[i].TexC;
+        vertices[k].TangentU = cylinder.Vertices[i].TangentU;
     }
 
     std::vector<std::uint16_t> indices;
@@ -462,23 +467,26 @@ void GameApp::buildMaterials()
 {
     // 5个纹理材质
     std::vector<MaterialConstants> v = {
-        { { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.10f, 0.10f, 0.10f }, 0.3f, 0 },   // bricks
-        { { 0.9f, 0.9f, 0.9f, 1.0f }, { 0.20f, 0.20f, 0.20f }, 0.1f, 1 },   // tile
-        { { 0.0f, 0.0f, 0.1f, 1.0f }, { 0.98f, 0.97f, 0.95f }, 0.1f, 2 },   // mirror
-        { { 0.8f, 0.8f, 0.8f, 1.0f }, { 0.20f, 0.20f, 0.20f }, 0.2f, 2 },   // skull
-        { { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.10f, 0.10f, 0.10f }, 1.0f, 3 },   // sky
+        { { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.10f, 0.10f, 0.10f }, 0.3f, 0, 1},   // bricks
+        { { 0.9f, 0.9f, 0.9f, 1.0f }, { 0.20f, 0.20f, 0.20f }, 0.1f, 2, 3},   // tile
+        { { 0.0f, 0.0f, 0.1f, 1.0f }, { 0.98f, 0.97f, 0.95f }, 0.1f, 4, 5},   // mirror
+        { { 0.8f, 0.8f, 0.8f, 1.0f }, { 0.20f, 0.20f, 0.20f }, 0.2f, 4, 5},   // skull
+        { { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.10f, 0.10f, 0.10f }, 1.0f, 6, 7},   // sky
     };
 
     // 存入所有纹理属性
-    m_mats.Create(L"skull mats", (UINT)v.size(), sizeof(MaterialConstants), v.data());
+    m_mats.Create(L"materials", (UINT)v.size(), sizeof(MaterialConstants), v.data());
 
-    // 4个纹理
-    m_srvs.resize(4);
+    // 7个纹理
+    m_srvs.resize(7);
     TextureManager::Initialize(L"Textures/");
     m_srvs[0] = TextureManager::LoadFromFile(L"bricks2", true)->GetSRV();
-    m_srvs[1] = TextureManager::LoadFromFile(L"tile", true)->GetSRV();
-    m_srvs[2] = TextureManager::LoadFromFile(L"white1x1", true)->GetSRV();
-    m_srvs[3] = TextureManager::LoadFromFile(L"grasscube1024", true)->GetSRV();
+    m_srvs[1] = TextureManager::LoadFromFile(L"bricks2_nmap", true)->GetSRV();
+    m_srvs[2] = TextureManager::LoadFromFile(L"tile", true)->GetSRV();
+    m_srvs[3] = TextureManager::LoadFromFile(L"tile_nmap", true)->GetSRV();
+    m_srvs[4] = TextureManager::LoadFromFile(L"white1x1", true)->GetSRV();
+    m_srvs[5] = TextureManager::LoadFromFile(L"default_nmap", true)->GetSRV();
+    m_srvs[6] = TextureManager::LoadFromFile(L"snowcube1024", true)->GetSRV();
 }
 
 void GameApp::buildRenderItem()
@@ -488,7 +496,7 @@ void GameApp::buildRenderItem()
     skyRitem->modeToWorld = Transpose(Matrix4::MakeScale(5000.0f));
     skyRitem->texTransform = Transpose(Matrix4(kIdentity));
     skyRitem->matTransform = Transpose(Matrix4(kIdentity));
-    skyRitem->MaterialIndex = 4;
+    skyRitem->MaterialIndex = eMaterialType::sky;
     skyRitem->geo = m_mapGeometries["shapeGeo"].get();
     skyRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     skyRitem->IndexCount = skyRitem->geo->geoMap["sphere"].IndexCount;
@@ -501,7 +509,7 @@ void GameApp::buildRenderItem()
     boxRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(2.0f, 1.0f, 2.0f), Vector3(0.0f, 0.5f, 0.0f))));
     boxRitem->texTransform = Transpose(Matrix4(kIdentity));
     boxRitem->matTransform = Transpose(Matrix4(kIdentity));
-    boxRitem->MaterialIndex = 0;
+    boxRitem->MaterialIndex = eMaterialType::bricks;
     boxRitem->geo = m_mapGeometries["shapeGeo"].get();
     boxRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     boxRitem->IndexCount = boxRitem->geo->geoMap["box"].IndexCount;
@@ -514,7 +522,7 @@ void GameApp::buildRenderItem()
     globeRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(2.0f, 2.0f, 2.0f), Vector3(0.0f, 2.0f, 0.0f))));
     globeRitem->texTransform = Transpose(Matrix4::MakeScale(1.0f));
     globeRitem->matTransform = Transpose(Matrix4(kIdentity));
-    globeRitem->MaterialIndex = 2;
+    globeRitem->MaterialIndex = eMaterialType::mirror;
     globeRitem->geo = m_mapGeometries["shapeGeo"].get();
     globeRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     globeRitem->IndexCount = globeRitem->geo->geoMap["sphere"].IndexCount;
@@ -527,7 +535,7 @@ void GameApp::buildRenderItem()
     skullRitem->modeToWorld = Transpose(Matrix4(kIdentity));
     skullRitem->texTransform = Transpose(Matrix4(kIdentity));
     skullRitem->matTransform = Transpose(Matrix4(kIdentity));
-    skullRitem->MaterialIndex = 3;
+    skullRitem->MaterialIndex = eMaterialType::skull;
     skullRitem->geo = m_mapGeometries["skullGeo"].get();
     skullRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     skullRitem->IndexCount = skullRitem->geo->geoMap["skull"].IndexCount;
@@ -541,7 +549,7 @@ void GameApp::buildRenderItem()
     gridRitem->modeToWorld = Transpose(Matrix4(kIdentity));
     gridRitem->texTransform = Transpose(Matrix4::MakeScale({ 8.0f, 8.0f, 1.0f }));
     gridRitem->matTransform = Transpose(Matrix4(kIdentity));
-    gridRitem->MaterialIndex = 1;
+    gridRitem->MaterialIndex = eMaterialType::tile;
     gridRitem->geo = m_mapGeometries["shapeGeo"].get();
     gridRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     gridRitem->IndexCount = gridRitem->geo->geoMap["grid"].IndexCount;
@@ -556,7 +564,7 @@ void GameApp::buildRenderItem()
         leftCylRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Vector3(-5.0f, 1.5f, -10.0f + i * 5.0f))));
         leftCylRitem->texTransform = Transpose(Matrix4(kIdentity));
         leftCylRitem->matTransform = Transpose(Matrix4(kIdentity));
-        leftCylRitem->MaterialIndex = 0;
+        leftCylRitem->MaterialIndex = eMaterialType::bricks;
         leftCylRitem->geo = m_mapGeometries["shapeGeo"].get();
         leftCylRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
         leftCylRitem->IndexCount = leftCylRitem->geo->geoMap["cylinder"].IndexCount;
@@ -569,7 +577,7 @@ void GameApp::buildRenderItem()
         rightCylRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Vector3(+5.0f, 1.5f, -10.0f + i * 5.0f))));
         rightCylRitem->texTransform = Transpose(Matrix4(kIdentity));
         rightCylRitem->matTransform = Transpose(Matrix4(kIdentity));
-        rightCylRitem->MaterialIndex = 0;
+        rightCylRitem->MaterialIndex = eMaterialType::bricks;
         rightCylRitem->geo = m_mapGeometries["shapeGeo"].get();
         rightCylRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
         rightCylRitem->IndexCount = rightCylRitem->geo->geoMap["cylinder"].IndexCount;
@@ -582,7 +590,7 @@ void GameApp::buildRenderItem()
         leftSphereRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Vector3(+5.0f, 3.5f, -10.0f + i * 5.0f))));
         leftSphereRitem->texTransform = Transpose(Matrix4(kIdentity));
         leftSphereRitem->matTransform = Transpose(Matrix4(kIdentity));
-        leftSphereRitem->MaterialIndex = 2;
+        leftSphereRitem->MaterialIndex = eMaterialType::mirror;
         leftSphereRitem->geo = m_mapGeometries["shapeGeo"].get();
         leftSphereRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
         leftSphereRitem->IndexCount = leftSphereRitem->geo->geoMap["sphere"].IndexCount;
@@ -595,7 +603,7 @@ void GameApp::buildRenderItem()
         rightSphereRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Vector3(-5.0f, 3.5f, -10.0f + i * 5.0f))));
         rightSphereRitem->texTransform = Transpose(Matrix4(kIdentity));
         rightSphereRitem->matTransform = Transpose(Matrix4(kIdentity));
-        rightSphereRitem->MaterialIndex = 2;
+        rightSphereRitem->MaterialIndex = eMaterialType::mirror;
         rightSphereRitem->geo = m_mapGeometries["shapeGeo"].get();
         rightSphereRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
         rightSphereRitem->IndexCount = rightSphereRitem->geo->geoMap["sphere"].IndexCount;

@@ -53,8 +53,8 @@ struct MaterialConstants
     Math::Vector4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };  // 占据16字节
     Math::Vector3 FresnelR0 = { 0.01f, 0.01f, 0.01f };  // 占据16字节
     float Roughness = 0.25f;
-    UINT DiffuseMapIndex = 0;
-    UINT MaterialPad0;      // 占位符，16字节对齐
+    UINT DiffuseMapIndex = 0;   // 该纹理数据对应的纹理贴图id
+    UINT NormalSrvHeapIndex = 0; // 该纹理数据对应的纹理法相贴图id
     UINT MaterialPad1;
 };
 
@@ -65,14 +65,11 @@ struct MaterialConstants
 struct Vertex
 {
     Vertex() = default;
-    Vertex(float x, float y, float z, float nx, float ny, float nz, float u, float v) :
-        Pos(x, y, z),
-        Normal(nx, ny, nz),
-        TexC(u, v) {}
 
     DirectX::XMFLOAT3 Pos;
     DirectX::XMFLOAT3 Normal;
     DirectX::XMFLOAT2 TexC;
+    DirectX::XMFLOAT3 TangentU;
 };
 
 // 每一个子目标的结构体

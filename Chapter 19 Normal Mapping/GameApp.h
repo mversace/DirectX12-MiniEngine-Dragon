@@ -56,6 +56,14 @@ private:
     std::vector<RenderItem*> m_vecRenderItems[(int)RenderLayer::Count];
     std::vector<std::unique_ptr<RenderItem>> m_vecAll;
 
+    enum eMaterialType
+    {
+        bricks = 0,
+        tile,
+        mirror,
+        skull,
+        sky
+    };
     StructuredBuffer m_mats;    // t1 存储所有的纹理属性
     std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_srvs;  // 存储所有的纹理资源
 

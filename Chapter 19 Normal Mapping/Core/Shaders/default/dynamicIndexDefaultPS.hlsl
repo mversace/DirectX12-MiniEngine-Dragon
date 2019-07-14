@@ -34,9 +34,9 @@ struct MaterialData
 StructuredBuffer<MaterialData> gMaterialData : register(t0);
 
 // 占据t1-t4
-Texture2D gDiffuseMap[3] : register(t1);
-// gDiffuseMap占据的是t1-t4，而天空盒纹理本身是放在t4位置，这里转成cube类型
-TextureCube gCubeMap : register(t4);
+Texture2D gDiffuseMap[6] : register(t1);
+// gDiffuseMap占据的是t1-t7，而天空盒纹理本身是放在t4位置，这里转成cube类型
+TextureCube gCubeMap : register(t7);
 
 SamplerState gsamLinearWrap  : register(s0);
 

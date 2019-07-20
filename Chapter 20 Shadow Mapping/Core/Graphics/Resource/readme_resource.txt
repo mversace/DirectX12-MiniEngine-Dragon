@@ -40,6 +40,13 @@
 ----m_hDepthSRV: 深度着色器资源视图句柄
 ----m_hStencilSRV: 模板着色器资源视图句柄
 
+--ShadowBuffer -> DepthBuffer -> PixelBuffer -> GpuResource
+--阴影 深度/模板缓冲区
+--维护有3种描述符句柄：
+----m_hDSV[4]: 4种不同意义的深度视图句柄
+----m_hDepthSRV: 深度着色器资源视图句柄
+----m_hStencilSRV: 模板着色器资源视图句柄
+
 
 /**********************************************************************
     缓冲区 D3D12_RESOURCE_DIMENSION_BUFFER

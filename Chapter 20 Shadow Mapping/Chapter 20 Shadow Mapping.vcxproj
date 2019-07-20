@@ -129,6 +129,8 @@
     <ClCompile Include="Core\Graphics\Resource\LinearAllocator.cpp" />
     <ClCompile Include="Core\Graphics\Resource\PixelBuffer.cpp" />
     <ClCompile Include="Core\Graphics\Resource\ReadbackBuffer.cpp" />
+    <ClCompile Include="Core\Graphics\Resource\ShadowBuffer.cpp" />
+    <ClCompile Include="Core\Graphics\ShadowCamera.cpp" />
     <ClCompile Include="Core\Graphics\Texture\DDSTextureLoader.cpp" />
     <ClCompile Include="Core\Graphics\Texture\TextureManager.cpp" />
     <ClCompile Include="Core\Math\Frustum.cpp" />
@@ -175,6 +177,8 @@
     <ClInclude Include="Core\Graphics\Resource\LinearAllocator.h" />
     <ClInclude Include="Core\Graphics\Resource\PixelBuffer.h" />
     <ClInclude Include="Core\Graphics\Resource\ReadbackBuffer.h" />
+    <ClInclude Include="Core\Graphics\Resource\ShadowBuffer.h" />
+    <ClInclude Include="Core\Graphics\ShadowCamera.h" />
     <ClInclude Include="Core\Graphics\Texture\dds.h" />
     <ClInclude Include="Core\Graphics\Texture\DDSTextureLoader.h" />
     <ClInclude Include="Core\Graphics\Texture\TextureManager.h" />

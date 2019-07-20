@@ -213,6 +213,12 @@
     <ClCompile Include="Core\Graphics\Resource\ColorCubeBuffer.cpp">
       <Filter>Core\Graphics\Resource</Filter>
     </ClCompile>
+    <ClCompile Include="Core\Graphics\Resource\ShadowBuffer.cpp">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\ShadowCamera.cpp">
+      <Filter>Core\Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Math\BoundingPlane.h">
@@ -383,6 +389,12 @@
     <ClInclude Include="Core\Graphics\Resource\ColorCubeBuffer.h">
       <Filter>Core\Graphics\Resource</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Graphics\Resource\ShadowBuffer.h">
+      <Filter>Core\Graphics\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\ShadowCamera.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Core\Math\Functions.inl">
@@ -467,6 +479,7 @@
     <None Include="Core\Shaders\default\LightingUtil.hlsl">
       <Filter>Shaders\default</Filter>
     </None>
+    <None Include="Core\Shaders\default\common.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Core\Shaders\Bitonic32InnerSortCS.hlsl">
@@ -947,9 +960,6 @@
       <Filter>Shaders\default</Filter>
     </FxCompile>
     <FxCompile Include="Core\Shaders\default\skyboxVS.hlsl">
-      <Filter>Shaders\default</Filter>
-    </FxCompile>
-    <FxCompile Include="Core\Shaders\default\common.hlsl">
       <Filter>Shaders\default</Filter>
     </FxCompile>
   </ItemGroup>

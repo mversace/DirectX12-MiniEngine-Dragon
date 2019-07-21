@@ -15,6 +15,10 @@
 #include "CompiledShaders/dynamicIndexDefaultVS.h"
 #include "CompiledShaders/skyboxPS.h"
 #include "CompiledShaders/skyboxVS.h"
+#include "CompiledShaders/shadowVS.h"
+#include "CompiledShaders/shadowPS.h"
+#include "CompiledShaders/shadowDebugVS.h"
+#include "CompiledShaders/shadowDebugPS.h"
 
 void GameApp::Startup(void)
 {
@@ -57,8 +61,6 @@ void GameApp::Update(float deltaT)
     // 注意反向
     m_SkullRItem->modeToWorld = Transpose(skullGlobalRotate * skullOffset * skullLocalRotate * skullScale);
 
-    m_ViewProjMatrix = m_Camera.GetViewProjMatrix();
-
     // 视口
     m_MainViewport.Width = (float)Graphics::g_SceneColorBuffer.GetWidth();
     m_MainViewport.Height = (float)Graphics::g_SceneColorBuffer.GetHeight();
@@ -70,11 +72,41 @@ void GameApp::Update(float deltaT)
     m_MainScissor.top = 0;
     m_MainScissor.right = (LONG)Graphics::g_SceneColorBuffer.GetWidth();
     m_MainScissor.bottom = (LONG)Graphics::g_SceneColorBuffer.GetHeight();
+
+    // 动态光源
+    mLightRotationAngle += 0.1f * deltaT;
+
+    XMMATRIX R = XMMatrixRotationY(mLightRotationAngle);
+    for (int i = 0; i < 3; ++i)
+    {
+        XMVECTOR lightDir = XMLoadFloat3(&mBaseLightDirections[i]);
+        lightDir = XMVector3TransformNormal(lightDir, R);
+        XMStoreFloat3(&mRotatedLightDirections[i], lightDir);
+    }
+
+    m_CameraShadow.UpdateMatrix(mRotatedLightDirections[0], { 0.0f, 0.0f, 0.0f },
+        { 30, 30, 60 }, (uint32_t)Graphics::g_ShadowBuffer.GetWidth(), (uint32_t)Graphics::g_ShadowBuffer.GetHeight(), 16);
 }
 
 void GameApp::RenderScene(void)
 {
     GraphicsContext& gfxContext = GraphicsContext::Begin(L"Scene Render");
+
+    // 一些通用的入参
+    // 设置根签名
+    gfxContext.SetRootSignature(m_RootSignature);
+
+    // 设置全部的纹理参数
+    gfxContext.SetBufferSRV(2, m_mats);
+
+    // 设置全部的纹理资源
+    gfxContext.SetDynamicDescriptors(3, 0, 7, &m_srvs[0]);
+    
+    // 渲染阴影图
+    DrawShadow(gfxContext);
+
+    // 绑定阴影
+    gfxContext.SetDynamicDescriptors(4, 0, 1, &Graphics::g_ShadowBuffer.GetSRV());
 
     // 动态天空盒渲染到 => g_SceneCubeBuffer
     DrawSceneToCubeMap(gfxContext);
@@ -89,26 +121,10 @@ void GameApp::RenderScene(void)
 
     gfxContext.SetViewportAndScissor(m_MainViewport, m_MainScissor);
 
-    gfxContext.SetRootSignature(m_RootSignature);
-
     // 设置通用的常量缓冲区
     PassConstants psc;
-    psc.viewProj = Transpose(m_ViewProjMatrix);
-    psc.eyePosW = m_Camera.GetPosition();
-    psc.ambientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
-    psc.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-    psc.Lights[0].Strength = { 0.8f, 0.8f, 0.8f };
-    psc.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
-    psc.Lights[1].Strength = { 0.4f, 0.4f, 0.4f };
-    psc.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
-    psc.Lights[2].Strength = { 0.2f, 0.2f, 0.2f };
+    updatePassConstants(psc, m_Camera);
     gfxContext.SetDynamicConstantBufferView(1, sizeof(psc), &psc);
-
-    // 设置全部的纹理参数
-    gfxContext.SetBufferSRV(2, m_mats);
-
-    // 设置全部的纹理资源
-    gfxContext.SetDynamicDescriptors(3, 0, 7, &m_srvs[0]);
 
     gfxContext.SetPipelineState(m_mapPSO[E_EPT_DEFAULT]);
     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Opaque]);
@@ -124,9 +140,29 @@ void GameApp::RenderScene(void)
     gfxContext.SetDynamicDescriptors(3, 6, 1, &m_srvs[6]);
     drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::Sky]);
 
+    // 绘制阴影的debug窗口
+    gfxContext.SetPipelineState(m_mapPSO[E_EPT_SHADOW_DEBUG]);
+    drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::shadowDebug]);
+
     gfxContext.TransitionResource(Graphics::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PRESENT);
 
     gfxContext.Finish();
+}
+
+void GameApp::DrawShadow(GraphicsContext& gfxContext)
+{
+    Graphics::g_ShadowBuffer.BeginRendering(gfxContext);
+    {
+        // 设置通用的常量缓冲区
+        PassConstants psc;
+        updatePassConstants(psc, m_CameraShadow);
+        gfxContext.SetDynamicConstantBufferView(1, sizeof(psc), &psc);
+
+        // 绘制所有物体的阴影图到g_ShadowBuffer中
+        gfxContext.SetPipelineState(m_mapPSO[E_EPT_SHADOW]);
+        drawRenderItems(gfxContext, m_vecRenderItems[(int)RenderLayer::allButSky]);
+    }
+    Graphics::g_ShadowBuffer.EndRendering(gfxContext);
 }
 
 void GameApp::DrawSceneToCubeMap(GraphicsContext& gfxContext)
@@ -147,15 +183,6 @@ void GameApp::DrawSceneToCubeMap(GraphicsContext& gfxContext)
     D3D12_RECT mScissorRect = { 0, 0, (LONG)width, (LONG)height };
     gfxContext.SetViewportAndScissor(mViewport, mScissorRect);
 
-    // 设置根签名
-    gfxContext.SetRootSignature(m_RootSignature);
-
-    // 设置全部的纹理参数
-    gfxContext.SetBufferSRV(2, m_mats);
-
-    // 设置全部的纹理资源
-    gfxContext.SetDynamicDescriptors(3, 0, 7, &m_srvs[0]);
-
     for (int i = 0; i < 6; ++i)
     {
         gfxContext.ClearDepthAndStencil(Graphics::g_SceneDepthBuffer);
@@ -164,15 +191,7 @@ void GameApp::DrawSceneToCubeMap(GraphicsContext& gfxContext)
 
         // 设置通用的常量缓冲区
         PassConstants psc;
-        psc.viewProj = Transpose(m_CameraCube[i].GetViewProjMatrix());
-        psc.eyePosW = m_CameraCube[i].GetPosition();
-        psc.ambientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
-        psc.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-        psc.Lights[0].Strength = { 0.8f, 0.8f, 0.8f };
-        psc.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
-        psc.Lights[1].Strength = { 0.4f, 0.4f, 0.4f };
-        psc.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
-        psc.Lights[2].Strength = { 0.2f, 0.2f, 0.2f };
+        updatePassConstants(psc, m_CameraCube[i]);
         gfxContext.SetDynamicConstantBufferView(1, sizeof(psc), &psc);
 
         // 开始绘制
@@ -221,13 +240,15 @@ void GameApp::drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderIte
 void GameApp::buildPSO()
 {
     // 创建根签名
-    m_RootSignature.Reset(4, 2);
+    m_RootSignature.Reset(5, 3);
     m_RootSignature.InitStaticSampler(0, Graphics::SamplerLinearWrapDesc);
     m_RootSignature.InitStaticSampler(1, Graphics::SamplerAnisoWrapDesc);
+    m_RootSignature.InitStaticSampler(2, Graphics::SamplerShadowDesc);
     m_RootSignature[0].InitAsConstantBuffer(0);
     m_RootSignature[1].InitAsConstantBuffer(1);
     m_RootSignature[2].InitAsBufferSRV(0);
     m_RootSignature[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7);
+    m_RootSignature[4].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 8, 1);
     m_RootSignature.Finalize(L"18 RS", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
     // 创建PSO
@@ -269,6 +290,24 @@ void GameApp::buildPSO()
     skyPSO.SetPixelShader(g_pskyboxPS, sizeof(g_pskyboxPS));
     skyPSO.Finalize();
     m_mapPSO[E_EPT_SKY] = skyPSO;
+
+    // shadow PSO
+    GraphicsPSO shadowPSO = defaultPSO;
+    shadowPSO.SetBlendState(Graphics::BlendNoColorWrite);
+    shadowPSO.SetRasterizerState(Graphics::RasterizerShadowCW);
+    shadowPSO.SetRenderTargetFormats(0, nullptr, Graphics::g_ShadowBuffer.GetFormat());
+    shadowPSO.SetVertexShader(g_pshadowVS, sizeof(g_pshadowVS));
+    shadowPSO.SetPixelShader(g_pshadowPS, sizeof(g_pshadowPS));
+    shadowPSO.Finalize();
+
+    m_mapPSO[E_EPT_SHADOW] = shadowPSO;
+
+    // shadow debug PSO
+    GraphicsPSO shadowDebugPSO = defaultPSO;
+    shadowDebugPSO.SetVertexShader(g_pshadowDebugVS, sizeof(g_pshadowDebugVS));
+    shadowDebugPSO.SetPixelShader(g_pshadowDebugPS, sizeof(g_pshadowDebugPS));
+    shadowDebugPSO.Finalize();
+    m_mapPSO[E_EPT_SHADOW_DEBUG] = shadowDebugPSO;
 }
 
 void GameApp::buildGeo()
@@ -285,6 +324,7 @@ void GameApp::buildShapeGeo()
     GeometryGenerator::MeshData grid = geoGen.CreateGrid(20.0f, 30.0f, 60, 40);
     GeometryGenerator::MeshData sphere = geoGen.CreateSphere(0.5f, 20, 20);
     GeometryGenerator::MeshData cylinder = geoGen.CreateCylinder(0.5f, 0.3f, 3.0f, 20, 20);
+    GeometryGenerator::MeshData quad = geoGen.CreateQuad(0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
 
     //
     // We are concatenating all the geometry into one big vertex/index buffer.  So
@@ -296,12 +336,14 @@ void GameApp::buildShapeGeo()
     UINT gridVertexOffset = (UINT)box.Vertices.size();
     UINT sphereVertexOffset = gridVertexOffset + (UINT)grid.Vertices.size();
     UINT cylinderVertexOffset = sphereVertexOffset + (UINT)sphere.Vertices.size();
+    UINT quadVertexOffset = cylinderVertexOffset + (UINT)cylinder.Vertices.size();
 
     // Cache the starting index for each object in the concatenated index buffer.
     UINT boxIndexOffset = 0;
     UINT gridIndexOffset = (UINT)box.Indices32.size();
     UINT sphereIndexOffset = gridIndexOffset + (UINT)grid.Indices32.size();
     UINT cylinderIndexOffset = sphereIndexOffset + (UINT)sphere.Indices32.size();
+    UINT quadIndexOffset = cylinderIndexOffset + (UINT)cylinder.Indices32.size();
 
     SubmeshGeometry boxSubmesh;
     boxSubmesh.IndexCount = (UINT)box.Indices32.size();
@@ -323,6 +365,11 @@ void GameApp::buildShapeGeo()
     cylinderSubmesh.StartIndexLocation = cylinderIndexOffset;
     cylinderSubmesh.BaseVertexLocation = cylinderVertexOffset;
 
+    SubmeshGeometry quadSubmesh;
+    quadSubmesh.IndexCount = (UINT)quad.Indices32.size();
+    quadSubmesh.StartIndexLocation = quadIndexOffset;
+    quadSubmesh.BaseVertexLocation = quadVertexOffset;
+
     //
     // Extract the vertex elements we are interested in and pack the
     // vertices of all the meshes into one vertex buffer.
@@ -332,7 +379,8 @@ void GameApp::buildShapeGeo()
         box.Vertices.size() +
         grid.Vertices.size() +
         sphere.Vertices.size() +
-        cylinder.Vertices.size();
+        cylinder.Vertices.size() +
+        quad.Vertices.size();
 
     std::vector<Vertex> vertices(totalVertexCount);
 
@@ -369,11 +417,20 @@ void GameApp::buildShapeGeo()
         vertices[k].TangentU = cylinder.Vertices[i].TangentU;
     }
 
+    for (int i = 0; i < quad.Vertices.size(); ++i, ++k)
+    {
+        vertices[k].Pos = quad.Vertices[i].Position;
+        vertices[k].Normal = quad.Vertices[i].Normal;
+        vertices[k].TexC = quad.Vertices[i].TexC;
+        vertices[k].TangentU = quad.Vertices[i].TangentU;
+    }
+
     std::vector<std::uint16_t> indices;
     indices.insert(indices.end(), std::begin(box.GetIndices16()), std::end(box.GetIndices16()));
     indices.insert(indices.end(), std::begin(grid.GetIndices16()), std::end(grid.GetIndices16()));
     indices.insert(indices.end(), std::begin(sphere.GetIndices16()), std::end(sphere.GetIndices16()));
     indices.insert(indices.end(), std::begin(cylinder.GetIndices16()), std::end(cylinder.GetIndices16()));
+    indices.insert(indices.end(), std::begin(quad.GetIndices16()), std::end(quad.GetIndices16()));
 
     auto geo = std::make_unique<MeshGeometry>();
     geo->name = "shapeGeo";
@@ -386,6 +443,7 @@ void GameApp::buildShapeGeo()
     geo->geoMap["grid"] = gridSubmesh;
     geo->geoMap["sphere"] = sphereSubmesh;
     geo->geoMap["cylinder"] = cylinderSubmesh;
+    geo->geoMap["quad"] = quadSubmesh;
 
     m_mapGeometries[geo->name] = std::move(geo);
 }
@@ -505,6 +563,20 @@ void GameApp::buildRenderItem()
     m_vecRenderItems[(int)RenderLayer::Sky].push_back(skyRitem.get());
     m_vecAll.push_back(std::move(skyRitem));
 
+    auto quadRitem = std::make_unique<RenderItem>();
+    quadRitem->modeToWorld = Transpose(Matrix4(kIdentity));
+    quadRitem->texTransform = Transpose(Matrix4(kIdentity));
+    quadRitem->matTransform = Transpose(Matrix4(kIdentity));
+    quadRitem->MaterialIndex = eMaterialType::bricks;
+    quadRitem->geo = m_mapGeometries["shapeGeo"].get();
+    quadRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    quadRitem->IndexCount = quadRitem->geo->geoMap["quad"].IndexCount;
+    quadRitem->StartIndexLocation = quadRitem->geo->geoMap["quad"].StartIndexLocation;
+    quadRitem->BaseVertexLocation = quadRitem->geo->geoMap["quad"].BaseVertexLocation;
+
+    m_vecRenderItems[(int)RenderLayer::shadowDebug].push_back(quadRitem.get());
+    m_vecAll.push_back(std::move(quadRitem));
+
     auto boxRitem = std::make_unique<RenderItem>();
     boxRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Matrix3::MakeScale(2.0f, 1.0f, 2.0f), Vector3(0.0f, 0.5f, 0.0f))));
     boxRitem->texTransform = Transpose(Matrix4(kIdentity));
@@ -516,6 +588,7 @@ void GameApp::buildRenderItem()
     boxRitem->StartIndexLocation = boxRitem->geo->geoMap["box"].StartIndexLocation;
     boxRitem->BaseVertexLocation = boxRitem->geo->geoMap["box"].BaseVertexLocation;
     m_vecRenderItems[(int)RenderLayer::Opaque].push_back(boxRitem.get());
+    m_vecRenderItems[(int)RenderLayer::allButSky].push_back(boxRitem.get());
     m_vecAll.push_back(std::move(boxRitem));
 
     auto globeRitem = std::make_unique<RenderItem>();
@@ -529,6 +602,7 @@ void GameApp::buildRenderItem()
     globeRitem->StartIndexLocation = globeRitem->geo->geoMap["sphere"].StartIndexLocation;
     globeRitem->BaseVertexLocation = globeRitem->geo->geoMap["sphere"].BaseVertexLocation;
     m_vecRenderItems[(int)RenderLayer::OpaqueDynamicReflectors].push_back(globeRitem.get());
+    m_vecRenderItems[(int)RenderLayer::allButSky].push_back(globeRitem.get());
     m_vecAll.push_back(std::move(globeRitem));
 
     auto skullRitem = std::make_unique<RenderItem>();
@@ -542,6 +616,7 @@ void GameApp::buildRenderItem()
     skullRitem->StartIndexLocation = skullRitem->geo->geoMap["skull"].StartIndexLocation;
     skullRitem->BaseVertexLocation = skullRitem->geo->geoMap["skull"].BaseVertexLocation;
     m_vecRenderItems[(int)RenderLayer::Opaque].push_back(skullRitem.get());
+    m_vecRenderItems[(int)RenderLayer::allButSky].push_back(skullRitem.get());
     m_SkullRItem = skullRitem.get();
     m_vecAll.push_back(std::move(skullRitem));
 
@@ -571,8 +646,9 @@ void GameApp::buildRenderItem()
         leftCylRitem->StartIndexLocation = leftCylRitem->geo->geoMap["cylinder"].StartIndexLocation;
         leftCylRitem->BaseVertexLocation = leftCylRitem->geo->geoMap["cylinder"].BaseVertexLocation;
         m_vecRenderItems[(int)RenderLayer::Opaque].push_back(leftCylRitem.get());
+        m_vecRenderItems[(int)RenderLayer::allButSky].push_back(leftCylRitem.get());
         m_vecAll.push_back(std::move(leftCylRitem));
-
+        
         auto rightCylRitem = std::make_unique<RenderItem>();
         rightCylRitem->modeToWorld = Transpose(Matrix4(AffineTransform(Vector3(+5.0f, 1.5f, -10.0f + i * 5.0f))));
         rightCylRitem->texTransform = Transpose(Matrix4::MakeScale({ 1.5f, 2.0f, 1.0f }));
@@ -584,6 +660,7 @@ void GameApp::buildRenderItem()
         rightCylRitem->StartIndexLocation = rightCylRitem->geo->geoMap["cylinder"].StartIndexLocation;
         rightCylRitem->BaseVertexLocation = rightCylRitem->geo->geoMap["cylinder"].BaseVertexLocation;
         m_vecRenderItems[(int)RenderLayer::Opaque].push_back(rightCylRitem.get());
+        m_vecRenderItems[(int)RenderLayer::allButSky].push_back(rightCylRitem.get());
         m_vecAll.push_back(std::move(rightCylRitem));
 
         auto leftSphereRitem = std::make_unique<RenderItem>();
@@ -597,6 +674,7 @@ void GameApp::buildRenderItem()
         leftSphereRitem->StartIndexLocation = leftSphereRitem->geo->geoMap["sphere"].StartIndexLocation;
         leftSphereRitem->BaseVertexLocation = leftSphereRitem->geo->geoMap["sphere"].BaseVertexLocation;
         m_vecRenderItems[(int)RenderLayer::Opaque].push_back(leftSphereRitem.get());
+        m_vecRenderItems[(int)RenderLayer::allButSky].push_back(leftSphereRitem.get());
         m_vecAll.push_back(std::move(leftSphereRitem));
 
         auto rightSphereRitem = std::make_unique<RenderItem>();
@@ -610,6 +688,7 @@ void GameApp::buildRenderItem()
         rightSphereRitem->StartIndexLocation = rightSphereRitem->geo->geoMap["sphere"].StartIndexLocation;
         rightSphereRitem->BaseVertexLocation = rightSphereRitem->geo->geoMap["sphere"].BaseVertexLocation;
         m_vecRenderItems[(int)RenderLayer::Opaque].push_back(rightSphereRitem.get());
+        m_vecRenderItems[(int)RenderLayer::allButSky].push_back(rightSphereRitem.get());
         m_vecAll.push_back(std::move(rightSphereRitem));
     }
 }
@@ -694,4 +773,18 @@ void GameApp::buildCubeCamera(float x, float y, float z)
         m_CameraCube[i].SetPerspectiveMatrix(Math::XM_PIDIV2, 1.0f, 0.1f, 1000.0f);
         m_CameraCube[i].Update();
     }
+}
+
+void GameApp::updatePassConstants(PassConstants& psc, Math::BaseCamera& camera)
+{
+    psc.viewProj = Transpose(camera.GetViewProjMatrix());
+    psc.modelToShadow = Transpose(m_CameraShadow.GetShadowMatrix());
+    psc.eyePosW = camera.GetPosition();
+    psc.ambientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+    psc.Lights[0].Direction = mRotatedLightDirections[0];
+    psc.Lights[0].Strength = { 0.9f, 0.8f, 0.7f };
+    psc.Lights[1].Direction = mRotatedLightDirections[1];
+    psc.Lights[1].Strength = { 0.4f, 0.4f, 0.4f };
+    psc.Lights[2].Direction = mRotatedLightDirections[2];
+    psc.Lights[2].Strength = { 0.2f, 0.2f, 0.2f };
 }

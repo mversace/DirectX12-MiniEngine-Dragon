@@ -33,6 +33,7 @@ struct ObjectConstants
 struct PassConstants
 {
     Math::Matrix4 viewProj = Math::Matrix4(Math::kIdentity);      // 从世界坐标转为投影坐标的矩阵
+    Math::Matrix4 modelToShadow = Math::Matrix4(Math::kIdentity); // 把世界坐标转到阴影纹理上
     Math::Vector3 eyePosW = { 0.0f, 0.0f, 0.0f };     // 观察点也就是摄像机位置
     Math::Vector4 ambientLight = { 0.0f, 0.0f, 0.0f, 1.0f };
 

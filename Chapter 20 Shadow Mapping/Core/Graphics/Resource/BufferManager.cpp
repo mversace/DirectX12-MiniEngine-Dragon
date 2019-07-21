@@ -191,4 +191,5 @@ void Graphics::DestroyRenderingBuffers()
     g_SceneCubeBuff.Destroy();
     g_OverlayBuffer.Destroy();
     g_HorizontalBuffer.Destroy();
+    g_ShadowBuffer.Destroy();
 }

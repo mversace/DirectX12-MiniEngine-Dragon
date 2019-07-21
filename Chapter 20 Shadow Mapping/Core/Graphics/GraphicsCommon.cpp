@@ -80,7 +80,7 @@ void Graphics::InitializeCommonState(void)
     SamplerAnisoWrap = SamplerAnisoWrapDesc.CreateDescriptor();
 
     SamplerShadowDesc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
-    SamplerShadowDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+    SamplerShadowDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
     SamplerShadowDesc.SetTextureAddressMode(D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
     SamplerShadow = SamplerShadowDesc.CreateDescriptor();
 
@@ -136,12 +136,14 @@ void Graphics::InitializeCommonState(void)
     // Shadows need their own rasterizer state so we can reverse the winding of faces
     RasterizerShadow = RasterizerDefault;
     //RasterizerShadow.CullMode = D3D12_CULL_FRONT;  // Hacked here rather than fixing the content
-    RasterizerShadow.SlopeScaledDepthBias = -1.5f;
-    RasterizerShadow.DepthBias = -100;
+    RasterizerShadow.SlopeScaledDepthBias = 1.5f;
+    RasterizerShadow.DepthBias = 100;
 
     RasterizerShadowTwoSided = RasterizerShadow;
     RasterizerShadowTwoSided.CullMode = D3D12_CULL_MODE_NONE;
 
+    // 修改这个，适用于左手坐标系
+    // [TODO] 要优化下这里的结构体，去掉右手坐标系相关的东西
     RasterizerShadowCW = RasterizerShadow;
     RasterizerShadowCW.FrontCounterClockwise = FALSE;
 

@@ -26,11 +26,11 @@ namespace GameCore
         ShadowCamera() {}
 
         void UpdateMatrix( 
-            Vector3 LightDirection,        // Direction parallel to light, in direction of travel
-            Vector3 ShadowCenter,        // Center location on far bounding plane of shadowed region
-            Vector3 ShadowBounds,        // Width, height, and depth in world space represented by the shadow buffer
-            uint32_t BufferWidth,        // Shadow buffer width
-            uint32_t BufferHeight,        // Shadow buffer height--usually same as width
+            Vector3 LightDirection,     // 光照方向（单位向量）
+            Vector3 ShadowCenter,       // 阴影目标的中心点
+            Vector3 ShadowBounds,       // 阴影椎体的宽高深
+            uint32_t BufferWidth,       // Shadow buffer width
+            uint32_t BufferHeight,      // Shadow buffer height--usually same as width
             uint32_t BufferPrecision    // Bit depth of shadow buffer--usually 16 or 24
             );
 

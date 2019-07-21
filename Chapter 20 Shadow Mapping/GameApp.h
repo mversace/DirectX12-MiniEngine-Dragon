@@ -6,6 +6,7 @@
 #include "GpuBuffer.h"
 #include "PipelineState.h"
 #include "Camera.h"
+#include "ShadowCamera.h"
 #include "d3dUtil.h"
 #include "CameraController.h"
 
@@ -35,11 +36,14 @@ private:
     void drawRenderItems(GraphicsContext& gfxContext, std::vector<RenderItem*>& ritems);
     
     void buildCubeCamera(float x, float y, float z);
+    void DrawShadow(GraphicsContext& gfxContext);
     void DrawSceneToCubeMap(GraphicsContext& gfxContext);
 
 private:
     void buildShapeGeo();
     void buildSkullGeo();
+
+    void updatePassConstants(PassConstants& psc, Math::BaseCamera& camera);
 
 private:
     // 几何结构map
@@ -51,6 +55,8 @@ private:
         Opaque = 0,
         OpaqueDynamicReflectors,
         Sky,
+        allButSky,
+        shadowDebug,
         Count
     };
     std::vector<RenderItem*> m_vecRenderItems[(int)RenderLayer::Count];
@@ -76,6 +82,8 @@ private:
     {
         E_EPT_DEFAULT = 1,
         E_EPT_SKY,
+        E_EPT_SHADOW,
+        E_EPT_SHADOW_DEBUG,
     };
     std::unordered_map<int, GraphicsPSO> m_mapPSO;
 
@@ -84,10 +92,21 @@ private:
     // 天空盒摄像机
     Math::Camera m_CameraCube[6];
 
+    // 阴影摄像机
+    GameCore::ShadowCamera m_CameraShadow;
+
+    // 光源
+    float mLightRotationAngle = 0.0f;
+    XMFLOAT3 mBaseLightDirections[3] = {
+        XMFLOAT3(0.57735f, -0.57735f, 0.57735f),
+        XMFLOAT3(-0.57735f, -0.57735f, 0.57735f),
+        XMFLOAT3(0.0f, -0.707f, -0.707f)
+    };
+    XMFLOAT3 mRotatedLightDirections[3];
+
     // 摄像机
     // 以(0, 0, -m_radius) 为初始位置
     Math::Camera m_Camera;
-    Math::Matrix4 m_ViewProjMatrix;
     D3D12_VIEWPORT m_MainViewport;
     D3D12_RECT m_MainScissor;
 

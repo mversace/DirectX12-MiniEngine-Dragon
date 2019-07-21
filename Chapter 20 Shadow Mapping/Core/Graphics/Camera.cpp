@@ -39,7 +39,7 @@ void BaseCamera::SetLookDirection( Vector3 forward, Vector3 up )
 
 void BaseCamera::Update()
 {
-    // 计算视角变换矩阵，还没有看懂 m_CameraToWorld
+    // 计算视角变换矩阵，逆矩阵
     m_ViewMatrix = Matrix4(~m_CameraToWorld);
     
     // Matrix4中的*重载，故意反着写的。所以这里反着乘

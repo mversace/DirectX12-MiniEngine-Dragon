@@ -479,7 +479,9 @@
     <None Include="Core\Shaders\default\LightingUtil.hlsl">
       <Filter>Shaders\default</Filter>
     </None>
-    <None Include="Core\Shaders\default\common.hlsl" />
+    <None Include="Core\Shaders\default\common.hlsl">
+      <Filter>Shaders\default</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Core\Shaders\Bitonic32InnerSortCS.hlsl">
@@ -960,6 +962,18 @@
       <Filter>Shaders\default</Filter>
     </FxCompile>
     <FxCompile Include="Core\Shaders\default\skyboxVS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\default\shadowPS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\default\shadowVS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\default\shadowDebugPS.hlsl">
+      <Filter>Shaders\default</Filter>
+    </FxCompile>
+    <FxCompile Include="Core\Shaders\default\shadowDebugVS.hlsl">
       <Filter>Shaders\default</Filter>
     </FxCompile>
   </ItemGroup>
